@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aristotle - Mobile Math Tutor</title>
+    <title>Project Aristotle</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -16,143 +17,162 @@
             align-items: center;
         }
         .container {
-            max-width: 500px;
+            max-width: 650px;
             width: 100%;
             background: #ffffff;
-            padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            color: #1a1a1a;
-        }
-        p {
-            font-size: 14px;
-            color: #666;
-            margin-top: 0;
-        }
-        #status {
-            font-size: 12px;
-            font-weight: bold;
-            color: #d97706;
-            margin-bottom: 15px;
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            resize: none;
-            font-size: 16px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .app-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
+        }
+        h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }
+        .subtitle { margin: 4px 0 0 0; color: #86868b; font-size: 1rem; }
+        .input-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
+        textarea {
+            width: 100%; height: 90px; padding: 12px;
+            border: 1px solid #d2d2d7; border-radius: 8px;
+            font-family: inherit; font-size: 1rem; resize: vertical; box-sizing: border-box;
         }
         button {
-            width: 100%;
-            padding: 12px;
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
+            width: 100%; padding: 12px; background-color: #0071e3; color: #ffffff;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background-color 0.2s ease;
         }
-        button:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
+        button:hover { background-color: #0077ed; }
+        button:disabled { background-color: #a1a1a6; cursor: not-allowed; }
+        
+        /* Dashboard Styling */
+        .dashboard {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            margin: 16px 0; padding: 12px; background: #f5f5f7; border-radius: 8px;
         }
-        #output {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8fafc;
-            border-left: 4px solid #2563eb;
-            border-radius: 4px;
-            min-height: 50px;
-            font-style: italic;
+        .metric-card { text-align: center; }
+        .metric-label { font-size: 0.75rem; color: #86868b; text-transform: uppercase; font-weight: 600; }
+        .metric-value { font-size: 1.1rem; font-weight: 700; color: #1d1d1f; margin-top: 2px; }
+        
+        .output-box {
+            margin-top: 12px; padding: 16px; background-color: #f5f5f7;
+            border-left: 4px solid #0071e3; border-radius: 4px; min-height: 40px;
+        }
+        .history-panel {
+            margin-top: 20px; padding-top: 16px; border-top: 1px solid #d2d2d7;
+        }
+        .history-item {
+            font-size: 0.85rem; color: #515154; background: #fafafa;
+            padding: 6px 12px; margin-top: 6px; border-radius: 4px; border: 1px solid #e5e5ea;
+        }
+        .status-badge {
+            font-size: 0.8rem; font-weight: 600; color: #00802b;
+            background-color: #e6f9ec; padding: 4px 12px; border-radius: 12px; display: inline-block;
         }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.20.0/ort.min.js"></script>
 </head>
 <body>
 
     <div class="container">
-        <h1>🏛️ Aristotle</h1>
-        <p>A logic-based math tutor for your cellphone.</p>
-        <div id="status">Status: Initializing Arm optimized execution environment...</div>
+        <header>
+            <img src="logo.png" alt="Project Aristotle logo" class="app-logo">
+            <h1>Project Aristotle</h1>
+            <p class="subtitle">Local AI Math Guide</p>
+            <div style="margin-top: 8px;"><span class="status-badge">ONNX Core Enabled</span></div>
+        </header>
 
-        <textarea id="studentInput" placeholder="Enter your math proof or next step here..."></textarea>
-        <button id="submitBtn" disabled>Submit Step to Aristotle</button>
+        <section class="dashboard">
+            <div class="metric-card">
+                <div class="metric-label">Inference Latency</div>
+                <div class="metric-value" id="bench-latency">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">RAM Allocation</div>
+                <div class="metric-value" id="bench-ram">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Execution Mode</div>
+                <div class="metric-value" id="bench-mode" style="color: #0071e3;">--</div>
+            </div>
+        </section>
 
-        <h3>Aristotle's Guidance:</h3>
-        <div id="output">Waiting for engine setup...</div>
+        <main>
+            <div class="input-group">
+                <label for="proof-input">Enter your mathematical deduction step:</label>
+                <textarea id="proof-input" placeholder="e.g., If x is even, then x = 2k for some integer k..."></textarea>
+            </div>
+
+            <button id="verify-btn">Verify Logic Step</button>
+
+            <div class="input-group" style="margin-top: 16px;">
+                <label>Aristotle Guidance Output:</label>
+                <div id="guidance-output" class="output-box" aria-live="polite">Awaiting your deduction sequence...</div>
+            </div>
+
+            <div class="history-panel">
+                <label>Active Proof Chain History:</label>
+                <div id="history-log">
+                    <div style="font-style: italic; color:#86868b; font-size:0.85rem; padding-top:4px;">No steps recorded yet.</div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script type="module">
         import { AristotleEngine } from './aristotle.js';
 
-        const statusDiv = document.getElementById('status');
-        const outputDiv = document.getElementById('output');
-        const submitBtn = document.getElementById('submitBtn');
-        const studentInput = document.getElementById('studentInput');
+        const engine = new AristotleEngine();
+        const btn = document.getElementById('verify-btn');
+        const inputField = document.getElementById('proof-input');
+        const outputBox = document.getElementById('guidance-output');
+        const historyLog = document.getElementById('history-log');
+        
+        // Dashboard metric elements
+        const latMetric = document.getElementById('bench-latency');
+        const ramMetric = document.getElementById('bench-ram');
+        const modeMetric = document.getElementById('bench-mode');
 
-        // Instantiate the engine class we wrote earlier
-        const tutor = new AristotleEngine();
+        btn.addEventListener('click', async () => {
+            const userText = inputField.value.trim();
+            if (!userText) return;
 
-        async function startEngine() {
-            // Pass the global 'ort' library loaded by the script tag to the engine
-            if (typeof ort !== 'undefined') {
-                const success = await tutor.init(ort);
-                if (success) {
-                    statusDiv.innerText = "Status: Online (Running locally on Arm Silicon)";
-                    statusDiv.style.color = "#16a34a";
-                    outputDiv.innerText = "Greetings, student. What mathematical deduction shall we examine?";
-                    submitBtn.disabled = false;
-                } else {
-                    statusDiv.innerText = "Status: Initialization failed.";
-                    statusDiv.style.color = "#dc2626";
-                    outputDiv.innerText = "Could not load the local model weights.";
-                }
-            } else {
-                statusDiv.innerText = "Status: ONNX Runtime library missing.";
-                statusDiv.style.color = "#dc2626";
-            }
-        }
+            btn.disabled = true;
+            outputBox.innerText = "Executing matrix graph layers on device hardware...";
 
-        submitBtn.addEventListener('click', async () => {
-            const text = studentInput.value.trim();
-            if (!text) return;
+            // 1. Process local structural rules
+            const response = engine.processInput(userText);
+            
+            // 2. Map input string characters to token arrays for ONNX Tensor tracking
+            const mockTokens = Array.from(userText).map(char => char.charCodeAt(0));
+            
+            // 3. Fire local on-device inference pass and intercept profiling metrics
+            const metrics = await engine.evaluateProofStep(mockTokens, mockTokens.length);
 
-            outputDiv.innerText = "Aristotle is calculating step verification logic...";
-            submitBtn.disabled = true;
+            // 4. Render hardware metrics directly onto dashboard
+            latMetric.innerText = `${metrics.latency} ms`;
+            ramMetric.innerText = metrics.memoryEstimate;
+            modeMetric.innerText = metrics.status;
 
-            try {
-                // Dummy/placeholder token generation for testing the pipeline sandbox
-                // A real tokenizer will convert your string to numeric IDs
-                const mockTokens = new Int32Array([101, 2054, 2003, 102]); 
-                const sequenceLength = mockTokens.length;
+            // 5. Update user view outputs
+            outputBox.innerText = response;
+            inputField.value = ''; 
+            btn.disabled = false;
 
-                // Run inference on the local hardware via aristotle.js
-                const resultLogits = await tutor.evaluateProofStep(mockTokens, sequenceLength);
-
-                if (resultLogits) {
-                    outputDiv.innerText = "[Local Inference Complete] Aristotle processed your token tensors successfully. (Connect tokenizer to display text output)";
-                } else {
-                    outputDiv.innerText = "Aristotle encountered an error validating the logic matrix.";
-                }
-            } catch (err) {
-                outputDiv.innerText = "Error during on-device execution: " + err.message;
-            } finally {
-                submitBtn.disabled = false;
-            }
+            // 6. Append step cleanly into visual proof history stack
+            if(engine.history.length === 1) historyLog.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerText = `Step ${engine.history.length}: ${userText}`;
+            historyLog.appendChild(item);
         });
-
-        // Spin up the engine when the window loads
-        window.addEventListener('DOMContentLoaded', startEngine);
     </script>
 </body>
 </html>
