@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aristotle - Mobile Math Tutor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+        p {
+            font-size: 14px;
+            color: #666;
+            margin-top: 0;
+        }
+        #status {
+            font-size: 12px;
+            font-weight: bold;
+            color: #d97706;
+            margin-bottom: 15px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: none;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 4px;
+            min-height: 50px;
+            font-style: italic;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.20.0/ort.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🏛️ Aristotle</h1>
+        <p>A logic-based math tutor for your cellphone.</p>
+        <div id="status">Status: Initializing Arm optimized execution environment...</div>
+
+        <textarea id="studentInput" placeholder="Enter your math proof or next step here..."></textarea>
+        <button id="submitBtn" disabled>Submit Step to Aristotle</button>
+
+        <h3>Aristotle's Guidance:</h3>
+        <div id="output">Waiting for engine setup...</div>
+    </div>
+
+    <script type="module">
+        import { AristotleEngine } from './aristotle.js';
+
+        const statusDiv = document.getElementById('status');
+        const outputDiv = document.getElementById('output');
+        const submitBtn = document.getElementById('submitBtn');
+        const studentInput = document.getElementById('studentInput');
+
+        // Instantiate the engine class we wrote earlier
+        const tutor = new AristotleEngine();
+
+        async function startEngine() {
+            // Pass the global 'ort' library loaded by the script tag to the engine
+            if (typeof ort !== 'undefined') {
+                const success = await tutor.init(ort);
+                if (success) {
+                    statusDiv.innerText = "Status: Online (Running locally on Arm Silicon)";
+                    statusDiv.style.color = "#16a34a";
+                    outputDiv.innerText = "Greetings, student. What mathematical deduction shall we examine?";
+                    submitBtn.disabled = false;
+                } else {
+                    statusDiv.innerText = "Status: Initialization failed.";
+                    statusDiv.style.color = "#dc2626";
+                    outputDiv.innerText = "Could not load the local model weights.";
+                }
+            } else {
+                statusDiv.innerText = "Status: ONNX Runtime library missing.";
+                statusDiv.style.color = "#dc2626";
+            }
+        }
+
+        submitBtn.addEventListener('click', async () => {
+            const text = studentInput.value.trim();
+            if (!text) return;
+
+            outputDiv.innerText = "Aristotle is calculating step verification logic...";
+            submitBtn.disabled = true;
+
+            try {
+                // Dummy/placeholder token generation for testing the pipeline sandbox
+                // A real tokenizer will convert your string to numeric IDs
+                const mockTokens = new Int32Array([101, 2054, 2003, 102]); 
+                const sequenceLength = mockTokens.length;
+
+                // Run inference on the local hardware via aristotle.js
+                const resultLogits = await tutor.evaluateProofStep(mockTokens, sequenceLength);
+
+                if (resultLogits) {
+                    outputDiv.innerText = "[Local Inference Complete] Aristotle processed your token tensors successfully. (Connect tokenizer to display text output)";
+                } else {
+                    outputDiv.innerText = "Aristotle encountered an error validating the logic matrix.";
+                }
+            } catch (err) {
+                outputDiv.innerText = "Error during on-device execution: " + err.message;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Spin up the engine when the window loads
+        window.addEventListener('DOMContentLoaded', startEngine);
+    </script>
+</body>
+</html>
