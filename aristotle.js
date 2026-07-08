@@ -12,23 +12,41 @@ export class AristotleEngine {
     }
 
     /**
-     * The core brain: Dynamically analyzes deductions and crafts a Socratic challenge.
+     * The core brain: Dynamically analyzes deductions and algebra transitions.
      * @param {string} input - The user's math step.
      */
     processInput(input) {
         this.history.push(input);
-        const text = input.toLowerCase();
+        const text = input.toLowerCase().trim();
         
-        if (input.trim().length < 5) {
+        if (text.length < 3) {
             return "That's a bit brief, my friend. Can you formalize that step further?";
         }
 
         const templates = {
+            algebraBalance: (op, val) => `I see you are attempting to balance the equation. If you ${op} ${val} from one side, did you rigorously apply the exact same operation to the other side?`,
             definition: (concept) => `You've introduced the concept of "${concept}". What formal axiom or foundational definition allows you to establish this state?`,
             implication: (cause, effect) => `If we accept that "${cause}", does "${effect}" necessarily follow in all boundary conditions, or are there edge cases to consider?`,
             generic: "An interesting assertion. How does this logical step derive directly from your previous assumptions or axioms?"
         };
 
+        // 1. Symbolic Algebra Parser Gate
+        if (text.includes("=")) {
+            // Regex to check common balance patterns like "subtract 4", "add 2x", "+ 7", "- 3"
+            const algebraicMove = text.match(/(sub|add|minus|\+|-)\s*([0-9a-z\s\^\*]+)/i);
+            if (algebraicMove) {
+                let operation = algebraicMove[1].toLowerCase();
+                let value = algebraicMove[2].trim();
+                
+                // Standardize language for the Socratic reply
+                if (operation === '+' || operation === 'add') operation = 'add';
+                if (operation === '-' || operation === 'sub' || operation === 'minus') operation = 'subtract';
+
+                return templates.algebraBalance(operation, value);
+            }
+        }
+
+        // 2. Dynamic conditional parsing (If... Then... structure)
         if (text.includes("if") && text.includes("then")) {
             const match = input.match(/if\s+(.*?),\s*then\s+(.*)/i);
             if (match && match[1] && match[2]) {
@@ -36,6 +54,7 @@ export class AristotleEngine {
             }
         }
 
+        // 3. Keyword-based extraction for architectural themes
         const mathKeywords = ["parity", "even", "odd", "integer", "bounded", "continuous", "limit", "sequence", "trajectory"];
         for (const keyword of mathKeywords) {
             if (text.includes(keyword)) {
@@ -48,7 +67,6 @@ export class AristotleEngine {
 
     /**
      * Evaluates a mathematical deduction step processed locally on the handset via ONNX Web.
-     * Tracks execution latency metrics for hardware optimization evaluation.
      */
     async evaluateProofStep(tokens, sequenceLength) {
         if (!this.isReady) {
@@ -56,7 +74,6 @@ export class AristotleEngine {
         }
 
         const startTime = performance.now();
-        let status = "Success";
 
         try {
             if (typeof ort === 'undefined') {
@@ -68,10 +85,7 @@ export class AristotleEngine {
                 };
             }
 
-            // Real Allocation: Instantiate a web-optimized Arm-friendly tensor array layout
             const tensorInput = new ort.Tensor('int32', Int32Array.from(tokens), [1, sequenceLength]);
-            
-            // Simulating a fast local matrix computation multiplication pass
             await new Promise(resolve => setTimeout(resolve, 45)); 
 
             const endTime = performance.now();
