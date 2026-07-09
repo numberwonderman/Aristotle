@@ -5,13 +5,16 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0071e3",
-"icons": [
+  "icons": [
     {
-      "src": "logo-192.png",
+      "src": "/Aristotle/logo-192.png",
       "type": "image/png",
-      "sizes": "1024x1024",
-      "purpose": "any maskable"
+      "sizes": "192x192"
+    },
+    {
+      "src": "/Aristotle/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
-  ]
   ]
 }
