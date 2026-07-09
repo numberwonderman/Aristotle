@@ -1,20 +1,34 @@
 {
-  "name": "Project Aristotle",
   "short_name": "Aristotle",
+  "name": "Project Aristotle: Local AI Math Guide",
   "start_url": "/Aristotle/",
+  "scope": "/Aristotle/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0071e3",
+  "theme_color": "#000000",
+  "description": "An optimized, on-device, logic-based mathematical tutoring engine.",
   "icons": [
     {
-      "src": "/Aristotle/logo-192.png",
+      "src": "logo-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "1024x1024",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "logo-192.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "form_factor": "wide",
+      "label": "Project Aristotle Desktop"
     },
     {
-      "src": "/Aristotle/logo-512.png",
+      "src": "logo-192.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "1024x1024",
+      "form_factor": "narrow",
+      "label": "Project Aristotle Mobile"
     }
   ]
 }
