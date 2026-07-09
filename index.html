@@ -174,5 +174,13 @@
             historyLog.appendChild(item);
         });
     </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('Aristotle Engine: Service Worker Registered'))
+      .catch((err) => console.log('SW Registration failed: ', err));
+  }
+</script>
+
 </body>
 </html>
