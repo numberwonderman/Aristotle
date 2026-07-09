@@ -1,59 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Aristotle</title>
-    <link rel="manifest" href="/Aristotle/manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Aristotle: Local AI Math Guide</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  
+  <link rel="apple-touch-icon" href="logo-192.png">
 
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f5f5f7; color: #1d1d1f; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 650px; width: 100%; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); box-sizing: border-box; }
-        header { text-align: center; margin-bottom: 24px; }
-        .app-logo { width: 100px; height: 100px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); margin-bottom: 12px; }
-        h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }
-        .subtitle { margin: 4px 0 0 0; color: #86868b; font-size: 1rem; }
-        .input-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
-        textarea { width: 100%; height: 90px; padding: 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-family: inherit; font-size: 1rem; resize: vertical; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #0071e3; color: #ffffff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; }
-        button:hover { background-color: #0077ed; }
-        button:disabled { background-color: #a1a1a6; cursor: not-allowed; }
-        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; padding: 12px; background: #f5f5f7; border-radius: 8px; }
-        .metric-card { text-align: center; }
-        .metric-label { font-size: 0.75rem; color: #86868b; text-transform: uppercase; font-weight: 600; }
-        .metric-value { font-size: 1.1rem; font-weight: 700; color: #1d1d1f; margin-top: 2px; }
-        .output-box { margin-top: 12px; padding: 16px; background-color: #f5f5f7; border-left: 4px solid #0071e3; border-radius: 4px; min-height: 40px; }
-        .history-panel { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d2d2d7; }
-        .history-item { font-size: 0.85rem; color: #515154; background: #fafafa; padding: 6px 12px; margin-top: 6px; border-radius: 4px; border: 1px solid #e5e5ea; }
-        .status-badge { font-size: 0.8rem; font-weight: 600; color: #00802b; background-color: #e6f9ec; padding: 4px 12px; border-radius: 12px; display: inline-block; }
-    </style>
+  <style>
+    /* Add any custom CSS here or link your external stylesheet */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f5f5f7;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <img src="/Aristotle/logo-192.png" alt="Project Aristotle logo" class="app-logo">
-            <h1>Project Aristotle</h1>
-            <p class="subtitle">Local AI Math Guide</p>
-            <div style="margin-top: 8px;"><span class="status-badge">ONNX Core Enabled</span></div>
-        </header>
+  <div id="app">
+    </div>
 
-        </div>
+  <script src="aristotle.js"></script>
 
-    <script type="module">
-        import { AristotleEngine } from './aristotle.js';
-        // (Your existing engine logic remains the same)
-    </script>
-    
-    <script>
-      // Service Worker registration with explicit /Aristotle/ path
-      if ('serviceWorker' in navigator) {
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
         navigator.serviceWorker.register('/Aristotle/sw.js')
-          .then(() => console.log('Aristotle Engine: Service Worker Registered'))
-          .catch((err) => console.log('SW Registration failed: ', err));
-      }
-    </script>
+          .then(reg => console.log('Service Worker registered successfully with scope: ', reg.scope))
+          .catch(err => console.error('Service Worker registration failed: ', err));
+      });
+    }
+  </script>
 </body>
 </html>
