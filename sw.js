@@ -1,20 +1,6 @@
-{
-  "name": "Project Aristotle",
-  "short_name": "Aristotle",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ]
-}
+// sw.js - Minimal pass-through for troubleshooting
+self.addEventListener('fetch', (event) => {
+  // This tells the Service Worker to skip the cache and go straight to the network.
+  // Your app content will load exactly like a normal website.
+  event.respondWith(fetch(event.request));
+});
