@@ -1,4 +1,4 @@
-/**
+4/**
  * aristotle.js
  * A highly optimized, localized mathematical tutoring engine.
  * Engineered for the Arm AI Optimization Challenge (Mobile AI Track)
@@ -84,21 +84,35 @@ export class AristotleEngine {
      * Evaluates a mathematical deduction step using the ONNX model.
      */
     async evaluateProofStep(tokens, sequenceLength) {
-        if (!this.isReady) {
-            return { status: "Engine not initialized" };
-        }
+        /**
+     * Evaluates a math step by extracting [op, lhs, rhs] features
+     * and passing them to the ONNX model.
+     */
+    async evaluateProofStep(userText) {
+        if (!this.isReady) return { status: "Engine not initialized" };
 
         const startTime = performance.now();
 
         try {
-            // 1. Prepare Tensor
-            const tensorInput = new ort.Tensor('int32', Int32Array.from(tokens), [1, sequenceLength]);
+            // 1. Feature Extraction: Turn text into the 3 numbers the model expects
+            // Op: 1 for addition (+), 0 for subtraction (-)
+            const op = userText.includes("+") ? 1 : 0;
             
-            // 2. Run Inference
+            // Extract numbers (Finds the first two numbers in the string)
+            const matches = userText.match(/\d+/g);
+            if (!matches || matches.length < 2) {
+                return { status: "Could not parse math features", isValid: false };
+            }
+            
+            const lhs_delta = parseFloat(matches[0]);
+            const rhs_delta = parseFloat(matches[1]);
+
+            // 2. Prepare Tensor: [1, 3] shape matching your PyTorch nn.Linear(3, 8)
+            const tensorInput = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
+            
+            // 3. Inference
             const feeds = { [this.session.inputNames[0]]: tensorInput };
             const outputData = await this.session.run(feeds);
-            
-            // 3. Extract result
             const result = outputData[this.session.outputNames[0]].data[0];
 
             const endTime = performance.now();
@@ -110,9 +124,10 @@ export class AristotleEngine {
 
         } catch (error) {
             console.error("Inference execution error:", error);
-            return { status: "Execution Fault" };
+            return { status: "Execution Fault", isValid: false };
         }
     }
+
 
     /**
      * Hard-flushes the model from mobile RAM.
