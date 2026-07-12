@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+5<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -128,7 +128,7 @@
         </main>
     </div>
 
-    <script type="module">
+    <    <script type="module">
         import { AristotleEngine } from './aristotle.js';
 
         const engine = new AristotleEngine();
@@ -136,30 +136,58 @@
         const inputField = document.getElementById('proof-input');
         const outputBox = document.getElementById('guidance-output');
         const historyLog = document.getElementById('history-log');
+        const statusBadge = document.querySelector('.status-badge');
 
         const latMetric = document.getElementById('bench-latency');
         const ramMetric = document.getElementById('bench-ram');
         const modeMetric = document.getElementById('bench-mode');
 
+        // 1. Initialize Engine on load
+        window.addEventListener('load', async () => {
+            btn.disabled = true;
+            statusBadge.innerText = "Engine: Loading...";
+            
+            await engine.initialize();
+            
+            if (engine.isReady) {
+                statusBadge.innerText = "Engine: Ready";
+                statusBadge.style.backgroundColor = "#e6f9ec";
+                statusBadge.style.color = "#00802b";
+                btn.disabled = false;
+            } else {
+                statusBadge.innerText = "Engine: Failed";
+                statusBadge.style.backgroundColor = "#ffe6e6";
+                statusBadge.style.color = "#cc0000";
+            }
+        });
+
+        // 2. Handle Verification Logic
         btn.addEventListener('click', async () => {
             const userText = inputField.value.trim();
-            if (!userText) return;
+            if (!userText || !engine.isReady) return;
 
             btn.disabled = true;
-            outputBox.innerText = "Processing deduction step...";
+            outputBox.innerText = "Analyzing logic...";
 
+            // Get template feedback
             const response = engine.processInput(userText);
+            
+            // Perform Neural Inference
             const mockTokens = Array.from(userText).map(char => char.charCodeAt(0));
             const metrics = await engine.evaluateProofStep(mockTokens, mockTokens.length);
 
-            latMetric.innerText = `${metrics.latency} ms`;
-            ramMetric.innerText = metrics.memoryEstimate;
-            modeMetric.innerText = metrics.status;
+            // Update UI with real model feedback
+            latMetric.innerText = metrics.latency ? `${metrics.latency} ms` : "--";
+            ramMetric.innerText = metrics.memoryEstimate || "--";
+            
+            modeMetric.innerText = metrics.isValid ? "Valid" : "Check Logic";
+            modeMetric.style.color = metrics.isValid ? "#00802b" : "#d9534f";
 
-            outputBox.innerText = response;
+            outputBox.innerText = response + (metrics.isValid ? " (Verified)" : " (Refinement suggested)");
             inputField.value = '';
             btn.disabled = false;
 
+            // Update History
             if (engine.history.length === 1) historyLog.innerHTML = '';
             const item = document.createElement('div');
             item.className = 'history-item';
@@ -167,15 +195,11 @@
             historyLog.appendChild(item);
         });
 
-        // Service Worker registration for PWA installability/offline support
+        // Service Worker registration
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registered:', reg.scope))
-                    .catch((err) => console.error('Service Worker registration failed:', err));
-            });
+            navigator.serviceWorker.register('./sw.js').catch(console.error);
         }
     </script>
-</body>
+body>
 </html>
             
