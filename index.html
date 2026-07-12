@@ -149,4 +149,119 @@
         });
     </script>
     
+</html>        button { width: 100%; padding: 12px; background-color: #0071e3; color: #ffffff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; }
+        button:hover { background-color: #0077ed; }
+        button:disabled { background-color: #a1a1a6; cursor: not-allowed; }
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; padding: 12px; background: #f5f5f7; border-radius: 8px; }
+        .metric-card { text-align: center; }
+        .metric-label { font-size: 0.75rem; color: #86868b; text-transform: uppercase; font-weight: 600; }
+        .metric-value { font-size: 1.1rem; font-weight: 700; color: #1d1d1f; margin-top: 2px; }
+        .output-box { margin-top: 12px; padding: 16px; background-color: #f5f5f7; border-left: 4px solid #0071e3; border-radius: 4px; min-height: 40px; }
+        .history-panel { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d2d2d7; }
+        .history-item { font-size: 0.85rem; color: #515154; background: #fafafa; padding: 6px 12px; margin-top: 6px; border-radius: 4px; border: 1px solid #e5e5ea; }
+        .status-badge { font-size: 0.8rem; font-weight: 600; color: #00802b; background-color: #e6f9ec; padding: 4px 12px; border-radius: 12px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="Project Aristotle Logo" class="app-logo">
+            <h1>Project Aristotle</h1>
+            <p class="subtitle">Local AI Math Guide</p>
+            <div style="margin-top: 8px;"><span class="status-badge">Engine: Initializing...</span></div>
+        </header>
+
+        <section class="dashboard">
+            <div class="metric-card">
+                <div class="metric-label">Inference Latency</div>
+                <div class="metric-value" id="bench-latency">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">RAM Allocation</div>
+                <div class="metric-value" id="bench-ram">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Execution Mode</div>
+                <div class="metric-value" id="bench-mode" style="color: #0071e3;">--</div>
+            </div>
+        </section>
+
+        <main>
+            <div class="input-group">
+                <label for="proof-input">Enter your mathematical deduction step:</label>
+                <textarea id="proof-input" placeholder="e.g., If x is even, then x = 2k for some integer k..."></textarea>
+            </div>
+
+            <button id="verify-btn">Verify Logic Step</button>
+
+            <div class="input-group" style="margin-top: 16px;">
+                <label>Aristotle Guidance Output:</label>
+                <div id="guidance-output" class="output-box" aria-live="polite">Awaiting your deduction sequence...</div>
+            </div>
+
+            <div class="history-panel">
+                <label>Active Proof Chain History:</label>
+                <div id="history-log">
+                    <div style="font-style: italic; color:#86868b; font-size:0.85rem; padding-top:4px;">No steps recorded yet.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { AristotleEngine } from './aristotle.js';
+
+        const engine = new AristotleEngine();
+        const btn = document.getElementById('verify-btn');
+        const inputField = document.getElementById('proof-input');
+        const outputBox = document.getElementById('guidance-output');
+        const historyLog = document.getElementById('history-log');
+        const statusBadge = document.querySelector('.status-badge');
+        const latMetric = document.getElementById('bench-latency');
+        const modeMetric = document.getElementById('bench-mode');
+
+        window.addEventListener('load', async () => {
+            btn.disabled = true;
+            statusBadge.innerText = "Engine: Loading...";
+            await engine.initialize();
+            
+            if (engine.isReady) {
+                statusBadge.innerText = "Engine: Ready";
+                btn.disabled = false;
+            } else {
+                statusBadge.innerText = "Engine: Failed";
+            }
+        });
+
+        btn.addEventListener('click', async () => {
+            const userText = inputField.value.trim();
+            if (!userText || !engine.isReady) return;
+
+            btn.disabled = true;
+            outputBox.innerText = "Analyzing...";
+
+            // 1. Get template feedback
+            const response = engine.processInput(userText);
+            
+            // 2. Perform Neural Inference (Passing the raw text)
+            const metrics = await engine.evaluateProofStep(userText);
+
+            // 3. Update UI
+            latMetric.innerText = metrics.latency ? `${metrics.latency} ms` : "--";
+            modeMetric.innerText = metrics.isValid ? "Valid" : "Check Logic";
+            modeMetric.style.color = metrics.isValid ? "#00802b" : "#d9534f";
+
+            outputBox.innerText = response + (metrics.isValid ? " (Verified)" : " (Refinement suggested)");
+            inputField.value = '';
+            btn.disabled = false;
+
+            if (engine.history.length === 1) historyLog.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerText = `Step ${engine.history.length}: ${userText}`;
+            historyLog.appendChild(item);
+        });
+    </script>
+    
 </html>
