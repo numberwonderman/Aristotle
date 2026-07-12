@@ -103,13 +103,12 @@
         const outputBox = document.getElementById('guidance-output');
         const historyLog = document.getElementById('history-log');
         const statusBadge = document.querySelector('.status-badge');
-
         const latMetric = document.getElementById('bench-latency');
-        const ramMetric = document.getElementById('bench-ram');
         const modeMetric = document.getElementById('bench-mode');
 
         window.addEventListener('load', async () => {
             btn.disabled = true;
+            statusBadge.innerText = "Engine: Loading...";
             await engine.initialize();
             
             if (engine.isReady) {
@@ -117,8 +116,6 @@
                 btn.disabled = false;
             } else {
                 statusBadge.innerText = "Engine: Failed";
-                statusBadge.style.backgroundColor = "#ffe6e6";
-                statusBadge.style.color = "#cc0000";
             }
         });
 
@@ -127,14 +124,16 @@
             if (!userText || !engine.isReady) return;
 
             btn.disabled = true;
-            outputBox.innerText = "Analyzing logic...";
+            outputBox.innerText = "Analyzing...";
 
+            // 1. Get template feedback
             const response = engine.processInput(userText);
-            const mockTokens = Array.from(userText).map(char => char.charCodeAt(0));
-            const metrics = await engine.evaluateProofStep(mockTokens, mockTokens.length);
+            
+            // 2. Perform Neural Inference (Passing the raw text)
+            const metrics = await engine.evaluateProofStep(userText);
 
+            // 3. Update UI
             latMetric.innerText = metrics.latency ? `${metrics.latency} ms` : "--";
-            ramMetric.innerText = metrics.memoryEstimate || "--";
             modeMetric.innerText = metrics.isValid ? "Valid" : "Check Logic";
             modeMetric.style.color = metrics.isValid ? "#00802b" : "#d9534f";
 
@@ -148,10 +147,6 @@
             item.innerText = `Step ${engine.history.length}: ${userText}`;
             historyLog.appendChild(item);
         });
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(console.error);
-        }
     </script>
-</body>
+    <
 </html>
