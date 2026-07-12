@@ -1,6 +1,7 @@
 /**
  * aristotle.js
  * Optimized for Arm AI (Mobile AI Track)
+ * Syncing to raw integer values [1-20] as per trainer.py
  */
 
 export class AristotleEngine {
@@ -39,16 +40,15 @@ export class AristotleEngine {
             
             if (!matches || matches.length < 2) return { status: "Parse Error", isValid: false };
             
-            // Normalize inputs to match training scale (1-20 range normalized)
-            const lhs_delta = parseFloat(matches[0]) / 20.0;
-            const rhs_delta = parseFloat(matches[1]) / 20.0;
+            // REMOVED: / 20.0 normalization
+            const lhs_delta = parseFloat(matches[0]);
+            const rhs_delta = parseFloat(matches[1]);
 
-            console.log("Debug - Feeding to model:", [op, lhs_delta, rhs_delta]);
+            console.log("Debug - Feeding raw values to model:", [op, lhs_delta, rhs_delta]);
 
-            // Create Tensor
+            // Create Tensor with raw values
             const tensorInput = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
             
-            // Use the dynamic input name found in initialize()
             const inputName = this.session.inputNames[0];
             const feeds = { [inputName]: tensorInput };
             
