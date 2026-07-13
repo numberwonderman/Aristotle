@@ -1,7 +1,6 @@
 /**
  * aristotle.js
  * Optimized for Arm AI (Mobile AI Track)
- * Syncing to raw integer values [1-20] as per trainer.py
  */
 
 export class AristotleEngine {
@@ -15,64 +14,44 @@ export class AristotleEngine {
         try {
             this.session = await ort.InferenceSession.create('./trainer/validator.onnx');
             this.isReady = true;
-            console.log("Aristotle Engine: Ready. Input node name:", this.session.inputNames[0]);
+            console.log("Aristotle Engine: Ready.");
         } catch (e) {
             console.error("Failed to load model:", e);
             this.isReady = false;
         }
     }
 
-    processInput(input) {
-        this.history.push(input);
-        return "Analyzing logical step..."; 
-    }
-
     async evaluateProofStep(userText) {
-        if (!this.isReady) return { status: "Engine not initialized", isValid: false };
+        if (!this.isReady) return { latency: 0, isValid: false, probability: 0 };
 
         const startTime = performance.now();
 
         try {
-            const op = userText.includes("+") ? 1 : 0;
-            const matches = userText.match(/\d+/g);
+            // Heuristic Parser: extract 'op' and 'deltas'
+            // Maps "Add" to 1, otherwise 0.
+            const op = userText.toLowerCase().includes("add") ? 1 : 0;
+            const numbers = userText.match(/\d+/g)?.map(Number) || [0, 0];
             
-            console.log("Debug - Parser extracted:", matches); 
-            
-            if (!matches || matches.length < 2) return { status: "Parse Error", isValid: false };
-            
-            // REMOVED: / 20.0 normalization
-            const lhs_delta = parseFloat(matches[0]);
-            const rhs_delta = parseFloat(matches[1]);
+            // Extract the last two numbers found in the sentence as the deltas
+            const lhs_delta = numbers.length >= 2 ? numbers[numbers.length - 2] : 0;
+            const rhs_delta = numbers.length >= 1 ? numbers[numbers.length - 1] : 0;
 
-            console.log("Debug - Feeding raw values to model:", [op, lhs_delta, rhs_delta]);
+            console.log("Feeding to model:", [op, lhs_delta, rhs_delta]);
 
-            // Create Tensor with raw values
             const tensorInput = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
-            
-            const inputName = this.session.inputNames[0];
-            const feeds = { [inputName]: tensorInput };
+            const feeds = { [this.session.inputNames[0]]: tensorInput };
             
             const outputData = await this.session.run(feeds);
             const result = outputData[this.session.outputNames[0]].data[0];
 
-            console.log("Debug - Model output probability:", result);
-
             return {
-                latency: (performance.now() - startTime).toFixed(2),
+                latency: (performance.now() - startTime),
                 isValid: result > 0.5,
-                status: "Success"
+                probability: result // Key addition for the UI Confidence Bar
             };
         } catch (error) {
             console.error("Inference execution error:", error);
-            return { status: "Execution Fault", isValid: false };
+            return { latency: 0, isValid: false, probability: 0 };
         }
-    }
-
-    purgeMemory() {
-        if (this.session) {
-            this.session.release();
-            this.session = null;
-        }
-        this.isReady = false;
     }
 }
