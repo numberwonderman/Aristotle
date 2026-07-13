@@ -2,91 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Aristotle</title>
+    <title>Project Aristotle</title>
     <style>
-        :root { --bg: #ffffff; --text: #1d1d1f; --accent: #0071e3; --border: #d2d2d7; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding-top: 40px; }
-        .container { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; align-items: center;}
+        /* CSS makes it look like an app, not a document */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f7; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
+        .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
         
-        /* Logo Styling */
-        .app-logo { width: 80px; height: 80px; margin-bottom: 16px; object-fit: contain; }
+        .logo { width: 100px; height: 100px; margin: 0 auto 20px; display: block; }
+        h1 { font-size: 1.5rem; margin: 0 0 10px 0; }
         
-        h1 { font-size: 1.5rem; letter-spacing: -0.5px; margin-bottom: 8px; color: var(--text); font-weight: 700;}
-        .subtitle { font-size: 0.9rem; color: #86868b; margin-bottom: 24px; }
-
-        .stats-row { width: 100%; display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-        .stat { display: flex; flex-direction: column; text-align: center; }
-        .stat-label { font-size: 0.65rem; color: #86868b; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-val { font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
-
-        textarea { width: 100%; height: 120px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; box-sizing: border-box; font-size: 1rem; margin-bottom: 12px; outline: none; transition: border 0.2s; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;}
-        textarea:focus { border-color: var(--accent); }
-
-        .btn-group { width: 100%; display: flex; gap: 8px; margin-bottom: 24px;}
-        button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 1rem;}
-        #verify-btn { background: var(--accent); color: white; }
-        #verify-btn:active { opacity: 0.8; }
-        #demo-btn { background: #f5f5f7; color: #1d1d1f; }
-        #demo-btn:active { background: #e8e8ed; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
+        .stat-item { font-size: 0.8rem; color: #555; }
         
-        .guidance { width: 100%; font-size: 1.05rem; line-height: 1.5; color: #424245; padding: 20px; background: #fbfbfd; border-radius: 12px; border: 1px solid #f2f2f7;}
+        textarea { width: 100%; height: 100px; margin-bottom: 15px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #verify-btn { background: #0071e3; color: white; }
+        #demo-btn { background: #e5e5ea; }
+        
+        .guidance { padding: 15px; background: #f0f7ff; border-left: 4px solid #0071e3; text-align: left; font-style: italic; color: #333; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Your existing logo.png is loaded here -->
-        <img src="logo.png" alt="Aristotle Logo" class="app-logo">
-        
-        <h1>Project Aristotle</h1>
-        <p class="subtitle">Hybrid Intellectual Guide</p>
-        
-        <div class="stats-row">
-            <div class="stat"><div class="stat-label">Latency</div><div class="stat-val" id="bench-latency">--</div></div>
-            <div class="stat"><div class="stat-label">Confidence</div><div class="stat-val" id="bench-conf">--</div></div>
-        </div>
 
-        <textarea id="proof-input" placeholder="Enter your algebraic step..."></textarea>
-        <div class="btn-group">
-            <button id="verify-btn">Verify Step</button>
-            <button id="demo-btn">Load Example</button>
-        </div>
-        
-        <div id="guidance-output" class="guidance">
-            "I am ready. Show me the first step of your proof."
-        </div>
+<div class="container">
+    <!-- LOGO HERE -->
+    <img src="logo.png" alt="Aristotle Logo" class="logo">
+    
+    <h1>Project Aristotle</h1>
+    
+    <div class="stats">
+        <div class="stat-item">Latency: <span id="bench-latency">--</span></div>
+        <div class="stat-item">Confidence: <span id="bench-conf">--</span></div>
     </div>
 
-    <script type="module">
-        import { AristotleEngine } from './aristotle.js';
-        const engine = new AristotleEngine();
-        // Ensure this initializes correctly against your .onnx file
-        await engine.initialize().catch(err => console.error(err));
+    <textarea id="proof-input" placeholder="e.g., x + 5 = 15"></textarea>
+    
+    <div class="btn-group">
+        <button id="verify-btn">Verify Step</button>
+        <button id="demo-btn">Load Example</button>
+    </div>
+    
+    <div id="guidance-output" class="guidance">
+        "I am Aristotle. Let us examine the logic of your proof together."
+    </div>
+</div>
 
-        const input = document.getElementById('proof-input');
-        const guidance = document.getElementById('guidance-output');
+<script type="module">
+    import { AristotleEngine } from './aristotle.js';
+    const engine = new AristotleEngine();
+    await engine.initialize();
 
-        // Demo button now loads the complex expression we discussed
-        document.getElementById('demo-btn').onclick = () => input.value = "x + 5 = 15";
+    const input = document.getElementById('proof-input');
+    const guidance = document.getElementById('guidance-output');
+
+    document.getElementById('demo-btn').onclick = () => input.value = "x + 5 = 15";
+
+    document.getElementById('verify-btn').onclick = async () => {
+        const m = await engine.evaluateProofStep(input.value);
+        document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
+        document.getElementById('bench-conf').innerText = `${(m.probability * 100).toFixed(0)}%`;
         
-        document.getElementById('verify-btn').onclick = async () => {
-            if (!engine.isReady) return;
-            const m = await engine.evaluateProofStep(input.value);
-            
-            // Update UI Stats
-            document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
-            document.getElementById('bench-conf').innerText = `${(m.probability * 100).toFixed(0)}%`;
-            
-            // Socratic Personality Logic
-            if (m.isValid) {
-                guidance.innerText = m.probability > 0.95
-                    ? "Precisely. That step is logically sound. How do you plan to isolate the variable next?"
-                    : "That holds true, but perhaps we can simplify the premise. Is there a more direct path to equality?";
-            } else {
-                guidance.innerText = m.probability < 0.15
-                    ? "I am afraid that reasoning does not maintain equality. If we add 5 to one side, what must we do to the other?"
-                    : "That step seems to introduce an inconsistency. Let's re-examine the balance of the equation." ;
-            }
-        };
-    </script>
+        guidance.innerText = m.isValid 
+            ? "That step holds. How do you plan to proceed?" 
+            : "That transformation seems inconsistent. Let's re-examine the balance.";
+    };
+</script>
+
 </body>
 </html>
