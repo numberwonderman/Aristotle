@@ -1,56 +1,46 @@
-/**
- * aristotle.js
- * Optimized for Arm AI (Mobile AI Track)
- */
-
 export class AristotleEngine {
     constructor() {
-        this.history = [];
         this.isReady = false;
         this.session = null;
     }
 
     async initialize() {
         try {
+            // Ensure this points to your specific model file
             this.session = await ort.InferenceSession.create('./trainer/validator.onnx');
             this.isReady = true;
-            console.log("Aristotle Engine: Ready.");
         } catch (e) {
-            console.error("Failed to load model:", e);
+            console.error("Engine failed to initialize:", e);
             this.isReady = false;
         }
     }
 
     async evaluateProofStep(userText) {
         if (!this.isReady) return { latency: 0, isValid: false, probability: 0 };
-
-        const startTime = performance.now();
+        const t0 = performance.now();
 
         try {
-            // Heuristic Parser: extract 'op' and 'deltas'
-            // Maps "Add" to 1, otherwise 0.
-            const op = userText.toLowerCase().includes("add") ? 1 : 0;
-            const numbers = userText.match(/\d+/g)?.map(Number) || [0, 0];
+            // 1. HYBRID HEURISTIC BRIDGE
+            // Strip non-numeric artifacts while maintaining essential math structure
+            const numbers = userText.match(/\d+/g)?.map(Number) || [0, 0, 0];
             
-            // Extract the last two numbers found in the sentence as the deltas
-            const lhs_delta = numbers.length >= 2 ? numbers[numbers.length - 2] : 0;
-            const rhs_delta = numbers.length >= 1 ? numbers[numbers.length - 1] : 0;
+            // Map inputs to the training distribution [op, lhs, rhs]
+            // We assume operation 0 for balancing logic
+            const op = 0;
+            const lhs = numbers[0] || 0;
+            const rhs = numbers[1] || 0;
 
-            console.log("Feeding to model:", [op, lhs_delta, rhs_delta]);
+            // 2. NEURAL INFERENCE
+            const tensor = new ort.Tensor('float32', Float32Array.from([op, lhs, rhs]), [1, 3]);
+            const output = await this.session.run({ [this.session.inputNames[0]]: tensor });
+            const probability = output[this.session.outputNames[0]].data[0];
 
-            const tensorInput = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
-            const feeds = { [this.session.inputNames[0]]: tensorInput };
-            
-            const outputData = await this.session.run(feeds);
-            const result = outputData[this.session.outputNames[0]].data[0];
-
-            return {
-                latency: (performance.now() - startTime),
-                isValid: result > 0.5,
-                probability: result // Key addition for the UI Confidence Bar
+            return { 
+                latency: performance.now() - t0, 
+                isValid: probability > 0.5, 
+                probability: probability 
             };
-        } catch (error) {
-            console.error("Inference execution error:", error);
+        } catch (e) {
             return { latency: 0, isValid: false, probability: 0 };
         }
     }
