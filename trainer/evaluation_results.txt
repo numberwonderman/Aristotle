@@ -1,0 +1,15 @@
+Training on 1600 samples, evaluating on 400 held-out samples.
+Final training loss: 0.0693
+
+--- Held-Out Test Set Results ---
+Accuracy:  95.00%  (380/400 correct)
+Precision: 0.910
+Recall:    1.000
+F1 Score:  0.953
+
+--- Edge Case Sanity Checks ---
+op=0, matching deltas (5,5) — should be VALID: prob=0.9417 -> VALID
+op=1, matching deltas (15,15) — should be VALID: prob=0.9434 -> VALID
+op=0, mismatched deltas (5,9) — should be INVALID: prob=0.0011 -> INVALID
+op=1, extreme value outside training range (50,50): prob=0.9411 -> VALID
+op=0, zero deltas (0,0): prob=0.9172 -> VALID
