@@ -50,10 +50,19 @@
 <!-- Load Runtime -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
 <script type="module">
     import { AristotleEngine } from './aristotle.js';
-    
-    window.addEventListener('DOMContentLoaded', async () => {
+
+    // We create a wrapper to ensure 'ort' is available globally
+    async function initApp() {
+        // Double-check if ort loaded
+        if (typeof ort === 'undefined') {
+            console.error("ONNX Runtime failed to load. Check your internet or ad-blocker.");
+            return;
+        }
+
         const statusBadge = document.getElementById('status-badge');
         const engine = new AristotleEngine();
         
@@ -64,7 +73,6 @@
         } catch (err) {
             statusBadge.innerText = "● Engine Failed";
             statusBadge.style.color = "#ff3b30";
-            console.error("Initialization failed:", err);
         }
 
         const input = document.getElementById('proof-input');
@@ -76,13 +84,11 @@
             const m = await engine.evaluateProofStep(input.value);
             document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
             document.getElementById('bench-conf').innerText = `${(m.probability * 100).toFixed(0)}%`;
-            
-            guidance.innerText = m.isValid 
-                ? "That step holds. How do you plan to proceed?" 
-                : "That transformation seems inconsistent. Let's re-examine the balance.";
+            guidance.innerText = m.isValid ? "That step holds." : "Let's re-examine that step.";
         };
-    });
-</script>
+    }
 
+    initApp();
+</script>
 </body>
 </html>
