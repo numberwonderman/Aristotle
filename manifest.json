@@ -1,4 +1,13 @@
-"icons": [
+{
+  "short_name": "Aristotle",
+  "name": "Project Aristotle: Local AI Math Guide",
+  "start_url": "/Aristotle/",
+  "scope": "/Aristotle/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "description": "An optimized, on-device, logic-based mathematical tutoring engine.",
+  "icons": [
     {
       "src": "logo-192.png",
       "type": "image/png",
@@ -11,4 +20,5 @@
       "sizes": "512x512",
       "purpose": "any maskable"
     }
-  ],
+  ]
+}
