@@ -13,8 +13,12 @@
         h1 { font-size: 1.4rem; margin: 0 0 5px 0; }
         #status-badge { font-size: 0.7rem; color: #86868b; margin-bottom: 20px; font-weight: 600; }
 
-        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; }
         .stat-item { font-size: 0.8rem; color: #555; }
+        
+        /* Confidence Gauge */
+        #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; }
+        #gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.5s; background: #0071e3; }
 
         textarea { width: 100%; height: 100px; margin-bottom: 15px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-family: inherit; }
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -40,6 +44,7 @@
         <div class="stat-item">Latency: <span id="bench-latency">--</span></div>
         <div class="stat-item">Confidence: <span id="bench-conf">--</span></div>
     </div>
+    <div id="gauge-container"><div id="gauge-fill"></div></div>
 
     <textarea id="proof-input" placeholder="e.g., x + 5 = 15"></textarea>
 
@@ -65,11 +70,33 @@
 <script type="module">
     import { AristotleEngine } from './aristotle.js';
 
+    async function runStep(engine, text) {
+        const guidance = document.getElementById('guidance-output');
+        const fill = document.getElementById('gauge-fill');
+        
+        // 1. Rule-based Socratic guidance
+        const socraticResponse = engine.processInput(text);
+        
+        // 2. Real ONNX inference
+        const m = await engine.evaluateProofStep(text);
+        
+        // Update Stats
+        document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
+        const conf = (m.probability * 100).toFixed(0);
+        document.getElementById('bench-conf').innerText = `${conf}%`;
+        
+        // Update Gauge
+        fill.style.width = `${conf}%`;
+        fill.style.backgroundColor = m.probability > 0.5 ? '#34c759' : '#ff3b30';
+        
+        // Update Guidance
+        guidance.innerText = socraticResponse + (m.isValid ? " (Verified)" : " (Refinement suggested)");
+        
+        return m;
+    }
+
     async function initApp() {
-        if (typeof ort === 'undefined') {
-            console.error("ONNX Runtime failed to load. Check your internet or ad-blocker.");
-            return;
-        }
+        if (typeof ort === 'undefined') return;
 
         const statusBadge = document.getElementById('status-badge');
         const engine = new AristotleEngine();
@@ -80,32 +107,19 @@
             statusBadge.style.color = engine.isReady ? "#34c759" : "#ff3b30";
         } catch (err) {
             statusBadge.innerText = "● Engine Failed";
-            statusBadge.style.color = "#ff3b30";
         }
 
         const input = document.getElementById('proof-input');
-        const guidance = document.getElementById('guidance-output');
         const historyLog = document.getElementById('history-log');
         const verifyBtn = document.getElementById('verify-btn');
-
-        document.getElementById('demo-btn').onclick = () => input.value = "x + 5 = 15";
+        const demoBtn = document.getElementById('demo-btn');
 
         verifyBtn.onclick = async () => {
             const userText = input.value.trim();
             if (!userText || !engine.isReady) return;
 
             verifyBtn.disabled = true;
-
-            // 1. Rule-based Socratic guidance
-            const socraticResponse = engine.processInput(userText);
-
-            // 2. Real ONNX inference on the parsed step
-            const m = await engine.evaluateProofStep(userText);
-
-            document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
-            document.getElementById('bench-conf').innerText = `${(m.probability * 100).toFixed(0)}%`;
-
-            guidance.innerText = socraticResponse + (m.isValid ? " (Verified)" : " (Refinement suggested)");
+            await runStep(engine, userText);
 
             if (engine.history.length === 1) historyLog.innerHTML = '';
             const item = document.createElement('div');
@@ -117,17 +131,24 @@
             verifyBtn.disabled = false;
         };
 
-        // Service Worker registration for PWA installability/offline support
+        demoBtn.onclick = async () => {
+            const examples = ["x + 5 = 15", "x = 10 + 2", "parity = odd"];
+            demoBtn.disabled = true;
+            for (const step of examples) {
+                input.value = step;
+                await runStep(engine, step);
+                await new Promise(r => setTimeout(r, 1500));
+            }
+            input.value = '';
+            demoBtn.disabled = false;
+        };
+
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registered:', reg.scope))
-                    .catch((err) => console.error('Service Worker registration failed:', err));
-            });
+            navigator.serviceWorker.register('./sw.js').catch(console.error);
         }
     }
 
     initApp();
 </script>
 </body>
-    </html>
+</html>
