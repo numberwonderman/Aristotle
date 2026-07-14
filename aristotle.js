@@ -7,20 +7,20 @@ export class AristotleEngine {
 
     async initialize() {
         try {
-            // Path confirmed: Root directory
-            this.session = await ort.InferenceSession.create('./validator.onnx');
+            // Path corrected to match your 'trainer' folder structure
+            this.session = await ort.InferenceSession.create('./trainer/validator.onnx');
             this.isReady = true;
             console.log("Aristotle Engine: Ready. Input node name:", this.session.inputNames[0]);
         } catch (e) {
             console.error("Engine failed to initialize:", e);
             this.isReady = false;
-            throw e; // Bubble up for UI feedback
+            throw e;
         }
     }
 
     /**
      * The core brain: Dynamically analyzes deductions and algebra transitions.
-     * Reordered: Implications prioritized over equality checks.
+     * Reordered: Structural 'if...then' logic now takes priority.
      */
     processInput(input) {
         this.history.push(input);
@@ -120,4 +120,3 @@ export class AristotleEngine {
         this.isReady = false;
     }
 }
-
