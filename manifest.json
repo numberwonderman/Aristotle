@@ -2,6 +2,7 @@
   "short_name": "Aristotle",
   "name": "Project Aristotle: Local AI Math Guide",
   "start_url": "/Aristotle/",
+  "id": "/Aristotle/",
   "scope": "/Aristotle/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -12,13 +13,41 @@
       "src": "logo-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "logo-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "logo-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "wide",
+      "label": "Project Aristotle Desktop"
+    },
+    {
+      "src": "logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "narrow",
+      "label": "Project Aristotle Mobile"
     }
   ]
 }
