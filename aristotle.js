@@ -7,18 +7,20 @@ export class AristotleEngine {
 
     async initialize() {
         try {
-            this.session = await ort.InferenceSession.create('./trainer/validator.onnx');
+            // Path confirmed: Root directory
+            this.session = await ort.InferenceSession.create('./validator.onnx');
             this.isReady = true;
             console.log("Aristotle Engine: Ready. Input node name:", this.session.inputNames[0]);
         } catch (e) {
             console.error("Engine failed to initialize:", e);
             this.isReady = false;
+            throw e; // Bubble up for UI feedback
         }
     }
 
     /**
      * The core brain: Dynamically analyzes deductions and algebra transitions.
-     * @param {string} input - The user's math step.
+     * Reordered: Implications prioritized over equality checks.
      */
     processInput(input) {
         this.history.push(input);
@@ -36,7 +38,15 @@ export class AristotleEngine {
             generic: "An interesting assertion. How does this logical step derive directly from your previous assumptions or axioms?"
         };
 
-        // 1. Symbolic Algebra Parser Gate
+        // 1. PRIORITIZED: Structural Implications (if/then)
+        if (text.includes("if") && text.includes("then")) {
+            const match = input.match(/if\s+(.*?),\s*then\s+(.*)/i);
+            if (match && match[1] && match[2]) {
+                return templates.implication(match[1].trim(), match[2].trim());
+            }
+        }
+
+        // 2. Mathematical State/Equality
         if (text.includes("=")) {
             const hasActionKeyword = /(sub|add|minus|drop|move|isolate|divide|mult|\+|-)/i.test(text.replace(/^[a-z0-9\s\+\-\*\/\(\)]+=/, ''));
 
@@ -56,15 +66,7 @@ export class AristotleEngine {
             }
         }
 
-        // 2. Dynamic conditional parsing (If... Then... structure)
-        if (text.includes("if") && text.includes("then")) {
-            const match = input.match(/if\s+(.*?),\s*then\s+(.*)/i);
-            if (match && match[1] && match[2]) {
-                return templates.implication(match[1].trim(), match[2].trim());
-            }
-        }
-
-        // 3. Keyword-based extraction for architectural themes
+        // 3. Keyword-based heuristics (Fallback)
         const mathKeywords = ["parity", "even", "odd", "integer", "bounded", "continuous", "limit", "sequence", "trajectory"];
         for (const keyword of mathKeywords) {
             if (text.includes(keyword)) {
@@ -86,8 +88,6 @@ export class AristotleEngine {
             const op = /\+/.test(userText) ? 1 : 0;
             const matches = userText.match(/\d+/g);
 
-            console.log("Debug - Parser extracted:", matches);
-
             if (!matches || matches.length < 2) {
                 return { latency: 0, isValid: false, probability: 0, status: "Parse Error" };
             }
@@ -95,13 +95,10 @@ export class AristotleEngine {
             const lhs_delta = parseFloat(matches[0]);
             const rhs_delta = parseFloat(matches[1]);
 
-            console.log("Debug - Feeding raw values to model:", [op, lhs_delta, rhs_delta]);
-
             const tensor = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
-            const output = await this.session.run({ [this.session.inputNames[0]]: tensor });
+            const feeds = { [this.session.inputNames[0]]: tensor };
+            const output = await this.session.run(feeds);
             const probability = output[this.session.outputNames[0]].data[0];
-
-            console.log("Debug - Model output probability:", probability);
 
             return {
                 latency: performance.now() - t0,
@@ -122,4 +119,5 @@ export class AristotleEngine {
         }
         this.isReady = false;
     }
-    }
+}
+
