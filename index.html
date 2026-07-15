@@ -11,13 +11,24 @@
 
         .logo { width: 80px; height: 80px; margin: 0 auto 16px; display: block; object-fit: contain; }
         h1 { font-size: 1.4rem; margin: 0 0 5px 0; }
-        #status-badge { font-size: 0.7rem; color: #86868b; margin-bottom: 20px; font-weight: 600; }
+        #status-badge { font-size: 0.7rem; color: #86868b; margin-bottom: 12px; font-weight: 600; }
 
-        .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; }
+        /* AI Toggle */
+        .ai-toggle-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
+        .ai-toggle-row label { font-size: 0.8rem; color: #515154; font-weight: 600; }
+        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e5e5ea; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #34c759; }
+        input:checked + .slider:before { transform: translateX(18px); }
+        #ai-toggle-label { font-size: 0.75rem; color: #86868b; min-width: 60px; text-align: left; }
+
+        .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; transition: opacity 0.3s; }
         .stat-item { font-size: 0.8rem; color: #555; }
         
         /* Confidence Gauge */
-        #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; }
+        #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; transition: opacity 0.3s; }
         #gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.5s; background: #0071e3; }
 
         textarea { width: 100%; height: 100px; margin-bottom: 15px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-family: inherit; }
@@ -40,7 +51,16 @@
     <h1>Project Aristotle</h1>
     <div id="status-badge">● System initializing...</div>
 
-    <div class="stats">
+    <div class="ai-toggle-row">
+        <label for="ai-toggle-input">AI Validation</label>
+        <label class="switch">
+            <input type="checkbox" id="ai-toggle-input" checked>
+            <span class="slider"></span>
+        </label>
+        <span id="ai-toggle-label">ON</span>
+    </div>
+
+    <div class="stats" id="stats-panel">
         <div class="stat-item">Latency: <span id="bench-latency">--</span></div>
         <div class="stat-item">Confidence: <span id="bench-conf">--</span></div>
     </div>
@@ -70,29 +90,55 @@
 <script type="module">
     import { AristotleEngine } from './aristotle.js';
 
+    // Tracks whether the on-device ONNX validator should run.
+    // When false, only the rule-based Socratic engine responds — no inference call is made.
+    let aiEnabled = true;
+
     async function runStep(engine, text) {
         const guidance = document.getElementById('guidance-output');
         const fill = document.getElementById('gauge-fill');
-        
-        // 1. Rule-based Socratic guidance
+        const latencyEl = document.getElementById('bench-latency');
+        const confEl = document.getElementById('bench-conf');
+
+        // 1. Rule-based Socratic guidance (always runs)
         const socraticResponse = engine.processInput(text);
-        
-        // 2. Real ONNX inference
-        const m = await engine.evaluateProofStep(text);
-        
-        // Update Stats
-        document.getElementById('bench-latency').innerText = `${m.latency.toFixed(0)}ms`;
-        const conf = (m.probability * 100).toFixed(0);
-        document.getElementById('bench-conf').innerText = `${conf}%`;
-        
-        // Update Gauge
-        fill.style.width = `${conf}%`;
-        fill.style.backgroundColor = m.probability > 0.5 ? '#34c759' : '#ff3b30';
-        
-        // Update Guidance
-        guidance.innerText = socraticResponse + (m.isValid ? " (Verified)" : " (Refinement suggested)");
-        
-        return m;
+
+        // 2. Real ONNX inference — only when AI validation is toggled on
+        if (aiEnabled) {
+            const m = await engine.evaluateProofStep(text);
+
+            latencyEl.innerText = `${m.latency.toFixed(0)}ms`;
+            const conf = (m.probability * 100).toFixed(0);
+            confEl.innerText = `${conf}%`;
+
+            fill.style.width = `${conf}%`;
+            fill.style.backgroundColor = m.probability > 0.5 ? '#34c759' : '#ff3b30';
+
+            guidance.innerText = socraticResponse + (m.isValid ? " (Verified)" : " (Refinement suggested)");
+            return m;
+        } else {
+            latencyEl.innerText = '--';
+            confEl.innerText = 'AI off';
+            fill.style.width = '0%';
+            guidance.innerText = socraticResponse;
+            return null;
+        }
+    }
+
+    function applyAiToggleUI() {
+        const label = document.getElementById('ai-toggle-label');
+        const statsPanel = document.getElementById('stats-panel');
+        const gaugeContainer = document.getElementById('gauge-container');
+
+        label.innerText = aiEnabled ? 'ON' : 'OFF';
+        statsPanel.style.opacity = aiEnabled ? '1' : '0.4';
+        gaugeContainer.style.opacity = aiEnabled ? '1' : '0.4';
+
+        if (!aiEnabled) {
+            document.getElementById('bench-latency').innerText = '--';
+            document.getElementById('bench-conf').innerText = 'AI off';
+            document.getElementById('gauge-fill').style.width = '0%';
+        }
     }
 
     async function initApp() {
@@ -113,10 +159,20 @@
         const historyLog = document.getElementById('history-log');
         const verifyBtn = document.getElementById('verify-btn');
         const demoBtn = document.getElementById('demo-btn');
+        const aiToggleInput = document.getElementById('ai-toggle-input');
+
+        aiToggleInput.onchange = () => {
+            aiEnabled = aiToggleInput.checked;
+            applyAiToggleUI();
+        };
+        applyAiToggleUI();
 
         verifyBtn.onclick = async () => {
             const userText = input.value.trim();
-            if (!userText || !engine.isReady) return;
+            // Rule-based engine can run standalone, so only engine.isReady
+            // gates the AI path — verification proceeds either way.
+            if (!userText) return;
+            if (aiEnabled && !engine.isReady) return;
 
             verifyBtn.disabled = true;
             await runStep(engine, userText);
@@ -152,3 +208,4 @@
 </script>
 </body>
 </html>
+k
