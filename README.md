@@ -36,8 +36,7 @@ data_generator.py — generates synthetic training examples of correctly/incorre
 trainer.py — trains a small feedforward network (3 → 8 → 1) on that data and exports it to validator.onnx.
 
 
-
-
+The parser and the ONNX validator are decoupled by design — see 🔭 Expansion Plans below.
 
 
 📊 Current Status (Honest Accounting)
@@ -48,15 +47,27 @@ Working and verified:
 ONNX model loads and runs real inference in-browser (confirmed via console logging of input tensors and output probabilities across multiple test cases, producing varied, non-constant results).
 Training and inference use a consistent, unnormalized feature scale — a normalization mismatch present in an earlier version has been identified and fixed.
 The rule-based Socratic questioning engine is fully functional independent of the model.
+PWA installable — manifest icons and service worker registration confirmed working.
 
 
 In progress / not yet verified:
 
 
-Hardware execution provider (e.g., WASM vs. actual NEON/SIMD acceleration on Arm silicon) has not yet been explicitly confirmed — latency and memory figures reported in the UI reflect real performance.now() measurements, but specific acceleration backend claims are not yet verified against real Arm hardware.
-PWA installability (manifest icons, service worker registration) is being finalized.
+Hardware execution provider (e.g., WASM vs. actual NEON/SIMD acceleration on Arm silicon) has not yet been explicitly confirmed on real Arm hardware — latency and memory figures reported in the UI reflect real performance.now() measurements, but specific acceleration backend claims are still unverified against physical Arm silicon. Testing on an Arm-based phone is planned to resolve this.
+AI-off toggle — a control letting the student disable the ONNX validator and use the rule-based Socratic engine standalone is not yet implemented.
 The current validator model is intentionally small and trained on synthetic, narrowly-scoped data (algebra balancing steps only) — it is a proof-of-concept for real on-device inference, not a general mathematical reasoning system.
 
+
+
+🔭 Expansion Plans
+
+The parser and validator model are modular by design: the regex-driven parsing layer and the ONNX inference step are decoupled from algebra-specific logic, so both pieces can be swapped independently to support other math domains (e.g., geometry, inequalities) without rearchitecting the engine.
+
+Planned next steps:
+
+Real-device testing on Arm-based phone hardware to confirm NEON/SIMD acceleration claims currently only measured via performance.now().
+AI-off toggle so the rule-based Socratic engine can run standalone without the ONNX validator.
+Extending the parser/validator pair to additional math domains beyond algebra balancing.
 
 
 🧪 Model Evaluation
