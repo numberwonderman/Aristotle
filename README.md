@@ -48,13 +48,13 @@ ONNX model loads and runs real inference in-browser (confirmed via console loggi
 Training and inference use a consistent, unnormalized feature scale — a normalization mismatch present in an earlier version has been identified and fixed.
 The rule-based Socratic questioning engine is fully functional independent of the model.
 PWA installable — manifest icons and service worker registration confirmed working.
+AI-off toggle — a switch in the UI lets the student disable the ONNX validator; when off, no inference call is made and the rule-based Socratic engine responds standalone.
 
 
 In progress / not yet verified:
 
 
 Hardware execution provider (e.g., WASM vs. actual NEON/SIMD acceleration on Arm silicon) has not yet been explicitly confirmed on real Arm hardware — latency and memory figures reported in the UI reflect real performance.now() measurements, but specific acceleration backend claims are still unverified against physical Arm silicon. Testing on an Arm-based phone is planned to resolve this.
-AI-off toggle — a control letting the student disable the ONNX validator and use the rule-based Socratic engine standalone is not yet implemented.
 The current validator model is intentionally small and trained on synthetic, narrowly-scoped data (algebra balancing steps only) — it is a proof-of-concept for real on-device inference, not a general mathematical reasoning system.
 
 
@@ -66,7 +66,6 @@ The parser and validator model are modular by design: the regex-driven parsing l
 Planned next steps:
 
 Real-device testing on Arm-based phone hardware to confirm NEON/SIMD acceleration claims currently only measured via performance.now().
-AI-off toggle so the rule-based Socratic engine can run standalone without the ONNX validator.
 Extending the parser/validator pair to additional math domains beyond algebra balancing.
 
 
