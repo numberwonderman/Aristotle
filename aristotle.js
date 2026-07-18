@@ -19,15 +19,10 @@ export class AristotleEngine {
         }
     }
 
-    /**
-     * The core brain: Dynamically analyzes deductions and algebra transitions.
-     * Reordered: Structural 'if...then' logic now takes priority.
-     */
     processInput(input) {
         this.history.push(input);
         const text = input.toLowerCase().trim();
 
-        // Reset each call — only set below if we confirm a real balancing step
         this.lastValidatedStep = null;
 
         if (text.length < 3) {
@@ -42,7 +37,6 @@ export class AristotleEngine {
             generic: "An interesting assertion. How does this logical step derive directly from your previous assumptions or axioms?"
         };
 
-        // 1. PRIORITIZED: Structural Implications (if/then)
         if (text.includes("if") && text.includes("then")) {
             const match = input.match(/if\s+(.*?),\s*then\s+(.*)/i);
             if (match && match[1] && match[2]) {
@@ -50,13 +44,10 @@ export class AristotleEngine {
             }
         }
 
-        // 2. Mathematical State/Equality
         if (text.includes("=")) {
             const hasActionKeyword = /(sub|add|minus|drop|move|isolate|divide|mult|\+|-)/i.test(text.replace(/^[a-z0-9\s\+\-\*\/\(\)]+=/, ''));
 
             if (!hasActionKeyword && text.match(/^([a-z0-9\s\+\-\*\/\(\)]+)=([a-z0-9\s\+\-\*\/\(\)]+)$/i)) {
-                // NEW: bare equation — check if it's a simple numeric equality first.
-                // This is plain arithmetic, not a learned judgment, so no model call needed.
                 const [lhsRaw, rhsRaw] = input.split('=');
                 const lhs = parseFloat(lhsRaw);
                 const rhs = parseFloat(rhsRaw);
@@ -68,7 +59,6 @@ export class AristotleEngine {
                         : `Hold on — is "${input.trim()}" actually a true statement? Double check that before we continue.`;
                 }
 
-                // Non-numeric equation (e.g. contains variables) — fall back to original behavior
                 return templates.equationState(input.trim());
             }
 
@@ -80,7 +70,6 @@ export class AristotleEngine {
                 if (operation === '+' || operation === 'add') operation = 'add';
                 if (operation === '-' || operation === 'sub' || operation === 'minus') operation = 'subtract';
 
-                // Only mark this as a validated balancing step if the value is a clean number
                 const numericValue = parseFloat(value);
                 if (!isNaN(numericValue)) {
                     this.lastValidatedStep = { op: operation, value: numericValue };
@@ -90,7 +79,6 @@ export class AristotleEngine {
             }
         }
 
-        // 3. Keyword-based heuristics (Fallback)
         const mathKeywords = ["parity", "even", "odd", "integer", "bounded", "continuous", "limit", "sequence", "trajectory"];
         for (const keyword of mathKeywords) {
             if (text.includes(keyword)) {
@@ -101,16 +89,9 @@ export class AristotleEngine {
         return templates.generic;
     }
 
-    /**
-     * Evaluates a mathematical deduction step via real on-device ONNX inference.
-     * Only runs the model if processInput already confirmed this was a real
-     * balancing step (this.lastValidatedStep). No independent re-parsing of raw text.
-     */
     async evaluateProofStep(userText) {
         if (!this.isReady) return { latency: 0, isValid: false, probability: 0, status: "Engine not initialized" };
 
-        // GUARDRAIL: don't call the model unless processInput already confirmed
-        // this text represents an actual balancing-step transformation.
         if (!this.lastValidatedStep) {
             return { latency: 0, isValid: false, probability: 0, status: "Not a balancing step — model not invoked" };
         }
@@ -119,4 +100,34 @@ export class AristotleEngine {
 
         try {
             const { op: operation, value } = this.lastValidatedStep;
-            const op = operation === 'add'
+            const op = operation === 'add' ? 1 : 0;
+
+            const lhs_delta = value;
+            const rhs_delta = value;
+
+            const tensor = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
+            const feeds = { [this.session.inputNames[0]]: tensor };
+            const output = await this.session.run(feeds);
+            const probability = output[this.session.outputNames[0]].data[0];
+
+            return {
+                latency: performance.now() - t0,
+                isValid: probability > 0.5,
+                probability: probability,
+                status: "Success"
+            };
+        } catch (e) {
+            console.error("Inference execution error:", e);
+            return { latency: 0, isValid: false, probability: 0, status: "Execution Fault" };
+        }
+    }
+
+    purgeMemory() {
+        if (this.session) {
+            this.session.release();
+            this.session = null;
+        }
+        this.isReady = false;
+        this.lastValidatedStep = null;
+    }
+}
