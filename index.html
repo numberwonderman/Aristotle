@@ -26,7 +26,7 @@
 
         .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; transition: opacity 0.3s; }
         .stat-item { font-size: 0.8rem; color: #555; }
-        
+
         /* Confidence Gauge */
         #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; transition: opacity 0.3s; }
         #gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.5s; background: #0071e3; }
@@ -66,7 +66,7 @@
     </div>
     <div id="gauge-container"><div id="gauge-fill"></div></div>
 
-    <textarea id="proof-input" placeholder="e.g., x + 5 = 15"></textarea>
+    <textarea id="proof-input" placeholder="e.g., subtract 5 from both sides"></textarea>
 
     <div class="btn-group">
         <button id="verify-btn">Verify Step</button>
@@ -106,6 +106,17 @@
         // 2. Real ONNX inference — only when AI validation is toggled on
         if (aiEnabled) {
             const m = await engine.evaluateProofStep(text);
+
+            // NEW: handle the "not a balancing step" case distinctly from a real
+            // model verdict, so it doesn't render as a false "invalid" (red/0%).
+            if (m.status !== "Success") {
+                latencyEl.innerText = '--';
+                confEl.innerText = 'N/A';
+                fill.style.width = '0%';
+                fill.style.backgroundColor = '#c7c7cc'; // neutral gray, not red
+                guidance.innerText = socraticResponse + " (Not a balancing step — AI validation not applicable)";
+                return m;
+            }
 
             latencyEl.innerText = `${m.latency.toFixed(0)}ms`;
             const conf = (m.probability * 100).toFixed(0);
@@ -188,7 +199,9 @@
         };
 
         demoBtn.onclick = async () => {
-            const examples = ["x + 5 = 15", "x = 10 + 2", "parity = odd"];
+            // UPDATED: now includes a real balancing-step example so the AI
+            // validation path is actually demonstrated at least once.
+            const examples = ["x + 5 = 15", "subtract 5 from both sides", "parity = odd"];
             demoBtn.disabled = true;
             for (const step of examples) {
                 input.value = step;
@@ -208,4 +221,3 @@
 </script>
 </body>
 </html>
-
