@@ -13,7 +13,6 @@
         h1 { font-size: 1.4rem; margin: 0 0 5px 0; }
         #status-badge { font-size: 0.7rem; color: #86868b; margin-bottom: 12px; font-weight: 600; }
 
-        /* AI Toggle */
         .ai-toggle-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
         .ai-toggle-row label { font-size: 0.8rem; color: #515154; font-weight: 600; }
         .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
@@ -27,7 +26,6 @@
         .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; transition: opacity 0.3s; }
         .stat-item { font-size: 0.8rem; color: #555; }
 
-        /* Confidence Gauge */
         #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; transition: opacity 0.3s; }
         #gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.5s; background: #0071e3; }
 
@@ -90,8 +88,6 @@
 <script type="module">
     import { AristotleEngine } from './aristotle.js';
 
-    // Tracks whether the on-device ONNX validator should run.
-    // When false, only the rule-based Socratic engine responds — no inference call is made.
     let aiEnabled = true;
 
     async function runStep(engine, text) {
@@ -100,20 +96,16 @@
         const latencyEl = document.getElementById('bench-latency');
         const confEl = document.getElementById('bench-conf');
 
-        // 1. Rule-based Socratic guidance (always runs)
         const socraticResponse = engine.processInput(text);
 
-        // 2. Real ONNX inference — only when AI validation is toggled on
         if (aiEnabled) {
             const m = await engine.evaluateProofStep(text);
 
-            // NEW: handle the "not a balancing step" case distinctly from a real
-            // model verdict, so it doesn't render as a false "invalid" (red/0%).
             if (m.status !== "Success") {
                 latencyEl.innerText = '--';
                 confEl.innerText = 'N/A';
                 fill.style.width = '0%';
-                fill.style.backgroundColor = '#c7c7cc'; // neutral gray, not red
+                fill.style.backgroundColor = '#c7c7cc';
                 guidance.innerText = socraticResponse + " (Not a balancing step — AI validation not applicable)";
                 return m;
             }
@@ -180,8 +172,6 @@
 
         verifyBtn.onclick = async () => {
             const userText = input.value.trim();
-            // Rule-based engine can run standalone, so only engine.isReady
-            // gates the AI path — verification proceeds either way.
             if (!userText) return;
             if (aiEnabled && !engine.isReady) return;
 
@@ -199,9 +189,8 @@
         };
 
         demoBtn.onclick = async () => {
-            // UPDATED: now includes a real balancing-step example so the AI
-            // validation path is actually demonstrated at least once.
-            const examples = ["x + 5 = 15", "subtract 5 from both sides", "parity = odd"];
+            // UPDATED: "x - 5 = x - 5" confirmed live by Frank to trigger real model inference
+            const examples = ["x + 5 = 15", "x - 5 = x - 5", "parity = odd"];
             demoBtn.disabled = true;
             for (const step of examples) {
                 input.value = step;
