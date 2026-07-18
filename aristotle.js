@@ -3,7 +3,7 @@ export class AristotleEngine {
         this.history = [];
         this.isReady = false;
         this.session = null;
-        this.lastValidatedStep = null; // NEW: holds {op, value} only when processInput confirms a real balancing step
+        this.lastValidatedStep = null; // holds {op, value} only when processInput confirms a real balancing step
     }
 
     async initialize() {
@@ -55,6 +55,20 @@ export class AristotleEngine {
             const hasActionKeyword = /(sub|add|minus|drop|move|isolate|divide|mult|\+|-)/i.test(text.replace(/^[a-z0-9\s\+\-\*\/\(\)]+=/, ''));
 
             if (!hasActionKeyword && text.match(/^([a-z0-9\s\+\-\*\/\(\)]+)=([a-z0-9\s\+\-\*\/\(\)]+)$/i)) {
+                // NEW: bare equation — check if it's a simple numeric equality first.
+                // This is plain arithmetic, not a learned judgment, so no model call needed.
+                const [lhsRaw, rhsRaw] = input.split('=');
+                const lhs = parseFloat(lhsRaw);
+                const rhs = parseFloat(rhsRaw);
+
+                if (!isNaN(lhs) && !isNaN(rhs)) {
+                    const isTrue = lhs === rhs;
+                    return isTrue
+                        ? `You've established the true equation "${input.trim()}". What is your next strategic move to begin isolating the variable?`
+                        : `Hold on — is "${input.trim()}" actually a true statement? Double check that before we continue.`;
+                }
+
+                // Non-numeric equation (e.g. contains variables) — fall back to original behavior
                 return templates.equationState(input.trim());
             }
 
@@ -66,7 +80,7 @@ export class AristotleEngine {
                 if (operation === '+' || operation === 'add') operation = 'add';
                 if (operation === '-' || operation === 'sub' || operation === 'minus') operation = 'subtract';
 
-                // NEW: only mark this as a validated balancing step if the value is a clean number
+                // Only mark this as a validated balancing step if the value is a clean number
                 const numericValue = parseFloat(value);
                 if (!isNaN(numericValue)) {
                     this.lastValidatedStep = { op: operation, value: numericValue };
@@ -89,8 +103,8 @@ export class AristotleEngine {
 
     /**
      * Evaluates a mathematical deduction step via real on-device ONNX inference.
-     * NOW: only runs the model if processInput already confirmed this was a real
-     * balancing step (this.lastValidatedStep). No more independent re-parsing of raw text.
+     * Only runs the model if processInput already confirmed this was a real
+     * balancing step (this.lastValidatedStep). No independent re-parsing of raw text.
      */
     async evaluateProofStep(userText) {
         if (!this.isReady) return { latency: 0, isValid: false, probability: 0, status: "Engine not initialized" };
@@ -105,36 +119,4 @@ export class AristotleEngine {
 
         try {
             const { op: operation, value } = this.lastValidatedStep;
-            const op = operation === 'add' ? 1 : 0;
-
-            // NOTE: model was trained only on lhs_delta === rhs_delta (a true balancing move
-            // applies the same value to both sides), so both deltas are the validated value.
-            const lhs_delta = value;
-            const rhs_delta = value;
-
-            const tensor = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
-            const feeds = { [this.session.inputNames[0]]: tensor };
-            const output = await this.session.run(feeds);
-            const probability = output[this.session.outputNames[0]].data[0];
-
-            return {
-                latency: performance.now() - t0,
-                isValid: probability > 0.5,
-                probability: probability,
-                status: "Success"
-            };
-        } catch (e) {
-            console.error("Inference execution error:", e);
-            return { latency: 0, isValid: false, probability: 0, status: "Execution Fault" };
-        }
-    }
-
-    purgeMemory() {
-        if (this.session) {
-            this.session.release();
-            this.session = null;
-        }
-        this.isReady = false;
-        this.lastValidatedStep = null;
-    }
-}
+            const op = operation === 'add'
