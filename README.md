@@ -18,7 +18,6 @@ On-Device AI Validation: A small trained neural network, running fully in-browse
 Equity & Autonomy: The engine runs fully client-side with no server round-trip required for inference, once the page and model are loaded.
 
 
-
 🛠️ Architecture Overview
 
 
@@ -26,9 +25,7 @@ index.html — A distraction-free, accessible UI. Supports screen readers, keybo
 aristotle.js — The AristotleEngine class. Combines:
 
 Rule-based Socratic templating (regex-driven parsing of equation states, algebra moves, and if/then implications) — this is the primary tutoring logic.
-Real ONNX inference — loads trainer/validator.onnx via onnxruntime-web's ort.InferenceSession, and runs actual forward-pass inference on parsed input to flag whether a step was correctly balanced.
-
-
+Real ONNX inference — loads trainer/validator.onnx via onnxruntime-web's ort.InferenceSession, and runs actual forward-pass inference, but **only on input the parser has already confirmed represents a genuine balancing step** (see "Gatekeeping" below).
 
 trainer/ — Python training pipeline:
 
@@ -39,24 +36,38 @@ trainer.py — trains a small feedforward network (3 → 8 → 1) on that data a
 The parser and the ONNX validator are decoupled by design — see 🔭 Expansion Plans below.
 
 
+🔒 Gatekeeping: The Model Only Speaks When It Knows
+
+Earlier versions of this engine would attempt to extract *any* two numbers from user input and feed them to the model, regardless of whether the input actually represented a balancing step. This produced confident-looking but meaningless output on inputs like a bare arithmetic fact ("2+3=5") — the model would return a probability even though the question being asked didn't match anything it was trained to judge.
+
+This has been fixed at the architecture level: `evaluateProofStep()` now only invokes the ONNX model when the parser (`processInput()`) has independently confirmed the input matches a real balancing-step pattern (the same value added or subtracted from both sides). If that confirmation isn't present, the engine returns `"Not a balancing step — model not invoked"` rather than guessing.
+
+Bare numeric equations (e.g., "5=5" or "2=5") are handled separately and correctly, via plain arithmetic equality — not the model. This is a deliberate design choice: checking whether two numbers are equal doesn't require a learned judgment, so no model call is made for it. The model is reserved for the one thing it was actually trained to assess: whether a transformation was legitimately applied to both sides.
+
+**In short: the engine is designed to be honest about the boundary of what it knows, rather than producing a confident answer for every input.**
+
+
 📊 Current Status (Honest Accounting)
 
 Working and verified:
 
-
 ONNX model loads and runs real inference in-browser (confirmed via console logging of input tensors and output probabilities across multiple test cases, producing varied, non-constant results).
 Training and inference use a consistent, unnormalized feature scale — a normalization mismatch present in an earlier version has been identified and fixed.
 The rule-based Socratic questioning engine is fully functional independent of the model.
+The model is only invoked on input confirmed to be an addition/subtraction balancing step; all other input is handled by the rule-based layer alone, with an explicit "not applicable" status rather than a guessed answer.
+Bare numeric equality (e.g., "5=5" vs. "2=5") is evaluated correctly via direct arithmetic comparison.
 PWA installable — manifest icons and service worker registration confirmed working.
 AI-off toggle — a switch in the UI lets the student disable the ONNX validator; when off, no inference call is made and the rule-based Socratic engine responds standalone.
 
+Scope boundaries (explicit, not oversights):
+
+**Addition and subtraction only.** Neither the parser nor the model currently recognizes multiplication or division as balancing operations. Input like "divide both sides by 5" will not be evaluated by the model and will fall back to a generic Socratic prompt. This is planned future work (see Expansion Plans), not a bug.
+The validator model was trained only on positive integers 1–20; the parser does not currently pass decimals or negative values to it, to avoid feeding the model out-of-distribution input it was never evaluated on.
 
 In progress / not yet verified:
 
-
 Hardware execution provider (e.g., WASM vs. actual NEON/SIMD acceleration on Arm silicon) has not yet been explicitly confirmed on real Arm hardware — latency and memory figures reported in the UI reflect real performance.now() measurements, but specific acceleration backend claims are still unverified against physical Arm silicon. Testing on an Arm-based phone is planned to resolve this.
 The current validator model is intentionally small and trained on synthetic, narrowly-scoped data (algebra balancing steps only) — it is a proof-of-concept for real on-device inference, not a general mathematical reasoning system.
-
 
 
 🔭 Expansion Plans
@@ -66,6 +77,9 @@ The parser and validator model are modular by design: the regex-driven parsing l
 Planned next steps:
 
 Real-device testing on Arm-based phone hardware to confirm NEON/SIMD acceleration claims currently only measured via performance.now().
+**Multiplication/division support.** This requires more than a parser update — balancing a multiplicative step means checking a ratio rather than a delta, which is a different feature definition for the model. This will require a new labeled dataset and a full retrain, not just a parser change.
+Support for decimal and negative values, paired with a retrain on an expanded dataset (currently untested at those values).
+Broader edge-case evaluation including negative-delta inputs (not yet tested — see Model Evaluation below).
 Extending the parser/validator pair to additional math domains beyond algebra balancing.
 
 
@@ -77,11 +91,7 @@ MetricScoreAccuracy95.00% (380/400 correct)Precision0.910Recall1.000F1 Score0.95
 
 A recall of 1.000 means the model never incorrectly flags a genuinely valid algebra step as invalid — an important property for a tutoring tool, where falsely telling a student their correct work is wrong would undermine trust in the guide.
 
-Edge case checks, including inputs outside the training data's 1–20 range, confirmed the model generalizes correctly rather than breaking down:
-
-CaseModel OutputCorrect?Matching deltas (5, 5), subtract0.90 → VALID✅Matching deltas (15, 15), add0.92 → VALID✅Mismatched deltas (5, 9), subtract0.02 → INVALID✅Matching deltas outside training range (50, 50)0.95 → VALID✅Zero deltas (0, 0)0.86 → VALID✅
-
-This is a small, narrowly-scoped classifier by design — it validates one specific pattern (equal-value operations applied to both sides of an equation) rather than performing general mathematical reasoning. The evaluation above is intended to honestly characterize what it does and does not do, rather than overstate its capabilities.
+This is a small, narrowly-scoped classifier trained on positive integers 1–20 — it validates one specific pattern (equal-value add/subtract operations applied to both sides of an equation) rather than performing general mathematical reasoning. A limited set of out-of-range and boundary cases were spot-checked and returned correct classifications, but this has not yet been tested systematically (e.g., no negative-delta cases have been evaluated) — that broader sweep is planned before final submission.
 
 To reproduce these results: cd trainer && python evaluate_model.py
 
