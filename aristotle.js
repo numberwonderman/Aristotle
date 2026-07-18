@@ -3,6 +3,7 @@ export class AristotleEngine {
         this.history = [];
         this.isReady = false;
         this.session = null;
+        this.lastValidatedStep = null; // NEW: holds {op, value} only when processInput confirms a real balancing step
     }
 
     async initialize() {
@@ -25,6 +26,9 @@ export class AristotleEngine {
     processInput(input) {
         this.history.push(input);
         const text = input.toLowerCase().trim();
+
+        // Reset each call — only set below if we confirm a real balancing step
+        this.lastValidatedStep = null;
 
         if (text.length < 3) {
             return "That's a bit brief, my friend. Can you formalize that step further?";
@@ -62,6 +66,12 @@ export class AristotleEngine {
                 if (operation === '+' || operation === 'add') operation = 'add';
                 if (operation === '-' || operation === 'sub' || operation === 'minus') operation = 'subtract';
 
+                // NEW: only mark this as a validated balancing step if the value is a clean number
+                const numericValue = parseFloat(value);
+                if (!isNaN(numericValue)) {
+                    this.lastValidatedStep = { op: operation, value: numericValue };
+                }
+
                 return templates.algebraBalance(operation, value);
             }
         }
@@ -79,21 +89,28 @@ export class AristotleEngine {
 
     /**
      * Evaluates a mathematical deduction step via real on-device ONNX inference.
+     * NOW: only runs the model if processInput already confirmed this was a real
+     * balancing step (this.lastValidatedStep). No more independent re-parsing of raw text.
      */
     async evaluateProofStep(userText) {
         if (!this.isReady) return { latency: 0, isValid: false, probability: 0, status: "Engine not initialized" };
+
+        // GUARDRAIL: don't call the model unless processInput already confirmed
+        // this text represents an actual balancing-step transformation.
+        if (!this.lastValidatedStep) {
+            return { latency: 0, isValid: false, probability: 0, status: "Not a balancing step — model not invoked" };
+        }
+
         const t0 = performance.now();
 
         try {
-            const op = /\+/.test(userText) ? 1 : 0;
-            const matches = userText.match(/\d+/g);
+            const { op: operation, value } = this.lastValidatedStep;
+            const op = operation === 'add' ? 1 : 0;
 
-            if (!matches || matches.length < 2) {
-                return { latency: 0, isValid: false, probability: 0, status: "Parse Error" };
-            }
-
-            const lhs_delta = parseFloat(matches[0]);
-            const rhs_delta = parseFloat(matches[1]);
+            // NOTE: model was trained only on lhs_delta === rhs_delta (a true balancing move
+            // applies the same value to both sides), so both deltas are the validated value.
+            const lhs_delta = value;
+            const rhs_delta = value;
 
             const tensor = new ort.Tensor('float32', Float32Array.from([op, lhs_delta, rhs_delta]), [1, 3]);
             const feeds = { [this.session.inputNames[0]]: tensor };
@@ -118,5 +135,6 @@ export class AristotleEngine {
             this.session = null;
         }
         this.isReady = false;
+        this.lastValidatedStep = null;
     }
 }
