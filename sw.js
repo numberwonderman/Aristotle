@@ -1,13 +1,42 @@
-self.addEventListener('fetch', (event) => {
-  // If the request is for a navigation (the page itself), 
-  // skip the service worker and go straight to the network.
-  if (event.request.mode === 'navigate') {
-    return;
-  }
-  
-  // For other requests (like assets or API calls), use the network.
-  event.respondWith(fetch(event.request).catch(() => {
-    // Optional: Add basic error handling here if a fetch fails
-    console.error('Fetch failed for:', event.request.url);
-  }));
+const CACHE_NAME = "aristotle-v1";
+
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./style.css",
+  "./aristotle.js",
+  "./trainer/validator.onnx"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log("Aristotle: Caching app assets");
+      return cache.addAll(ASSETS);
+    })
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    })
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request);
+    })
+  );
 });
