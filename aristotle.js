@@ -151,4 +151,4 @@ export class AristotleEngine {
         this.isReady = false;
         this.lastValidatedStep = null;
     }
-                }
+                
