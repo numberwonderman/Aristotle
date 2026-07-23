@@ -1,4 +1,4 @@
-const CACHE_NAME = "aristotle-v1";
+const CACHE_NAME = "aristotle-v2";
 
 const ASSETS = [
   "./",
