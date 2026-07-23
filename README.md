@@ -1,3 +1,22 @@
+🏛️ Project Aristotle
+
+An on-device, logic-based mathematical tutoring engine, built for the Arm AI Optimization Challenge (Mobile AI Track).
+
+
+👁️ The Vision: A Tutor, Not a Cheating Machine
+
+Aristotle is explicitly designed not to be an answer generator or a homework short-cut. Instead, it acts as an On-Device Socratic Math Guide.
+
+Rooted in Historical Logic
+
+The project is named after the historical philosopher Aristotle, the father of formal logic. In ancient Greece, Aristotle pioneered the study of syllogisms and deductive reasoning — the systematic framework showing how premises logically connect to valid conclusions. Project Aristotle modernizes this exact philosophy. It doesn't focus on arithmetic; it focuses on validity.
+
+
+Step-by-Step Logic Verification: Students input their own mathematical deductions and proof steps.
+Deductive Guidance: A rule-based local engine parses the structural flow of the math and generates targeted Socratic questions — highlighting logic breakdowns without handing out answers.
+On-Device AI Validation: A small trained neural network, running fully in-browser via ONNX Runtime Web, checks whether an algebraic balancing step was applied correctly (e.g., the same value subtracted or added to both sides of an equation).
+Equity & Autonomy: The engine runs fully client-side with no server round-trip required for inference, once the page and model are loaded.
+
 
 🛠️ Architecture Overview
 
