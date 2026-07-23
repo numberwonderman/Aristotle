@@ -4,43 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Aristotle</title>
+
     <link rel="manifest" href="manifest.json">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f7; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
-        .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
-
-        .logo { width: 80px; height: 80px; margin: 0 auto 16px; display: block; object-fit: contain; }
-        h1 { font-size: 1.4rem; margin: 0 0 5px 0; }
-        #status-badge { font-size: 0.7rem; color: #86868b; margin-bottom: 12px; font-weight: 600; }
-
-        .ai-toggle-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
-        .ai-toggle-row label { font-size: 0.8rem; color: #515154; font-weight: 600; }
-        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e5e5ea; transition: .3s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #34c759; }
-        input:checked + .slider:before { transform: translateX(18px); }
-        #ai-toggle-label { font-size: 0.75rem; color: #86868b; min-width: 60px; text-align: left; }
-
-        .stats { display: flex; justify-content: space-around; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 10px 10px 0 0; transition: opacity 0.3s; }
-        .stat-item { font-size: 0.8rem; color: #555; }
-
-        #gauge-container { width: 100%; height: 8px; background: #e5e5ea; border-radius: 0 0 10px 10px; margin-bottom: 20px; overflow: hidden; transition: opacity 0.3s; }
-        #gauge-fill { height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.5s; background: #0071e3; }
-
-        textarea { width: 100%; height: 100px; margin-bottom: 15px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-family: inherit; }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        #verify-btn { background: #0071e3; color: white; }
-        #demo-btn { background: #e5e5ea; }
-
-        .guidance { padding: 15px; background: #f0f7ff; border-left: 4px solid #0071e3; text-align: left; font-style: italic; color: #333; font-size: 0.9rem; margin-bottom: 16px; }
-
-        .history-panel { text-align: left; padding-top: 12px; border-top: 1px solid #e5e5ea; }
-        .history-panel label { font-size: 0.75rem; font-weight: 600; color: #86868b; }
-        .history-item { font-size: 0.8rem; color: #515154; background: #fafafa; padding: 6px 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #e5e5ea; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -62,7 +28,10 @@
         <div class="stat-item">Latency: <span id="bench-latency">--</span></div>
         <div class="stat-item">Confidence: <span id="bench-conf">--</span></div>
     </div>
-    <div id="gauge-container"><div id="gauge-fill"></div></div>
+
+    <div id="gauge-container">
+        <div id="gauge-fill"></div>
+    </div>
 
     <textarea id="proof-input" placeholder="e.g., subtract 5 from both sides"></textarea>
 
@@ -78,7 +47,9 @@
     <div class="history-panel">
         <label>Proof Chain History</label>
         <div id="history-log">
-            <div style="font-style: italic; color:#86868b; font-size:0.75rem; padding-top:4px;">No steps recorded yet.</div>
+            <div style="font-style: italic; color:#86868b; font-size:0.75rem; padding-top:4px;">
+                No steps recorded yet.
+            </div>
         </div>
     </div>
 </div>
@@ -86,127 +57,152 @@
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
 <script type="module">
-    import { AristotleEngine } from './aristotle.js';
+import { AristotleEngine } from './aristotle.js';
 
-    let aiEnabled = true;
+let aiEnabled = true;
 
-    async function runStep(engine, text) {
-        const guidance = document.getElementById('guidance-output');
-        const fill = document.getElementById('gauge-fill');
-        const latencyEl = document.getElementById('bench-latency');
-        const confEl = document.getElementById('bench-conf');
+async function runStep(engine, text) {
+    const guidance = document.getElementById('guidance-output');
+    const fill = document.getElementById('gauge-fill');
+    const latencyEl = document.getElementById('bench-latency');
+    const confEl = document.getElementById('bench-conf');
 
-        const socraticResponse = engine.processInput(text);
+    const socraticResponse = engine.processInput(text);
 
-        if (aiEnabled) {
-            const m = await engine.evaluateProofStep(text);
+    if (aiEnabled) {
+        const m = await engine.evaluateProofStep(text);
 
-            if (m.status !== "Success") {
-                latencyEl.innerText = '--';
-                confEl.innerText = 'N/A';
-                fill.style.width = '0%';
-                fill.style.backgroundColor = '#c7c7cc';
-                guidance.innerText = socraticResponse + " (Not a balancing step — AI validation not applicable)";
-                return m;
-            }
-
-            latencyEl.innerText = `${m.latency.toFixed(0)}ms`;
-            const conf = (m.probability * 100).toFixed(0);
-            confEl.innerText = `${conf}%`;
-
-            fill.style.width = `${conf}%`;
-            fill.style.backgroundColor = m.probability > 0.5 ? '#34c759' : '#ff3b30';
-
-            guidance.innerText = socraticResponse + (m.isValid ? " (Verified)" : " (Refinement suggested)");
-            return m;
-        } else {
+        if (m.status !== "Success") {
             latencyEl.innerText = '--';
-            confEl.innerText = 'AI off';
+            confEl.innerText = 'N/A';
             fill.style.width = '0%';
-            guidance.innerText = socraticResponse;
-            return null;
+            fill.style.backgroundColor = '#c7c7cc';
+            guidance.innerText =
+                socraticResponse +
+                " (Not a balancing step — AI validation not applicable)";
+            return m;
         }
+
+        latencyEl.innerText = `${m.latency.toFixed(0)}ms`;
+        const conf = (m.probability * 100).toFixed(0);
+        confEl.innerText = `${conf}%`;
+
+        fill.style.width = `${conf}%`;
+        fill.style.backgroundColor =
+            m.probability > 0.5 ? '#34c759' : '#ff3b30';
+
+        guidance.innerText =
+            socraticResponse +
+            (m.isValid ? " (Verified)" : " (Refinement suggested)");
+
+        return m;
+    } else {
+        latencyEl.innerText = '--';
+        confEl.innerText = 'AI off';
+        fill.style.width = '0%';
+        guidance.innerText = socraticResponse;
+        return null;
+    }
+}
+
+function applyAiToggleUI() {
+    const label = document.getElementById('ai-toggle-label');
+    const statsPanel = document.getElementById('stats-panel');
+    const gaugeContainer = document.getElementById('gauge-container');
+
+    label.innerText = aiEnabled ? 'ON' : 'OFF';
+    statsPanel.style.opacity = aiEnabled ? '1' : '0.4';
+    gaugeContainer.style.opacity = aiEnabled ? '1' : '0.4';
+
+    if (!aiEnabled) {
+        document.getElementById('bench-latency').innerText = '--';
+        document.getElementById('bench-conf').innerText = 'AI off';
+        document.getElementById('gauge-fill').style.width = '0%';
+    }
+}
+
+async function initApp() {
+    if (typeof ort === 'undefined') return;
+
+    const statusBadge = document.getElementById('status-badge');
+    const engine = new AristotleEngine();
+
+    try {
+        await engine.initialize();
+        statusBadge.innerText = engine.isReady
+            ? "● Engine Ready"
+            : "● Engine Failed";
+        statusBadge.style.color = engine.isReady
+            ? "#34c759"
+            : "#ff3b30";
+    } catch (err) {
+        statusBadge.innerText = "● Engine Failed";
     }
 
-    function applyAiToggleUI() {
-        const label = document.getElementById('ai-toggle-label');
-        const statsPanel = document.getElementById('stats-panel');
-        const gaugeContainer = document.getElementById('gauge-container');
+    const input = document.getElementById('proof-input');
+    const historyLog = document.getElementById('history-log');
+    const verifyBtn = document.getElementById('verify-btn');
+    const demoBtn = document.getElementById('demo-btn');
+    const aiToggleInput = document.getElementById('ai-toggle-input');
 
-        label.innerText = aiEnabled ? 'ON' : 'OFF';
-        statsPanel.style.opacity = aiEnabled ? '1' : '0.4';
-        gaugeContainer.style.opacity = aiEnabled ? '1' : '0.4';
-
-        if (!aiEnabled) {
-            document.getElementById('bench-latency').innerText = '--';
-            document.getElementById('bench-conf').innerText = 'AI off';
-            document.getElementById('gauge-fill').style.width = '0%';
-        }
-    }
-
-    async function initApp() {
-        if (typeof ort === 'undefined') return;
-
-        const statusBadge = document.getElementById('status-badge');
-        const engine = new AristotleEngine();
-
-        try {
-            await engine.initialize();
-            statusBadge.innerText = engine.isReady ? "● Engine Ready" : "● Engine Failed";
-            statusBadge.style.color = engine.isReady ? "#34c759" : "#ff3b30";
-        } catch (err) {
-            statusBadge.innerText = "● Engine Failed";
-        }
-
-        const input = document.getElementById('proof-input');
-        const historyLog = document.getElementById('history-log');
-        const verifyBtn = document.getElementById('verify-btn');
-        const demoBtn = document.getElementById('demo-btn');
-        const aiToggleInput = document.getElementById('ai-toggle-input');
-
-        aiToggleInput.onchange = () => {
-            aiEnabled = aiToggleInput.checked;
-            applyAiToggleUI();
-        };
+    aiToggleInput.onchange = () => {
+        aiEnabled = aiToggleInput.checked;
         applyAiToggleUI();
+    };
 
-        verifyBtn.onclick = async () => {
-            const userText = input.value.trim();
-            if (!userText) return;
-            if (aiEnabled && !engine.isReady) return;
+    applyAiToggleUI();
 
-            verifyBtn.disabled = true;
-            await runStep(engine, userText);
+    verifyBtn.onclick = async () => {
+        const userText = input.value.trim();
+        if (!userText) return;
+        if (aiEnabled && !engine.isReady) return;
 
-            if (engine.history.length === 1) historyLog.innerHTML = '';
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.innerText = `Step ${engine.history.length}: ${userText}`;
-            historyLog.appendChild(item);
+        verifyBtn.disabled = true;
 
-            input.value = '';
-            verifyBtn.disabled = false;
-        };
+        await runStep(engine, userText);
 
-        demoBtn.onclick = async () => {
-            // UPDATED: "x - 5 = x - 5" confirmed live by Frank to trigger real model inference
-            const examples = ["x + 5 = 15", "x - 5 = x - 5", "parity = odd"];
-            demoBtn.disabled = true;
-            for (const step of examples) {
-                input.value = step;
-                await runStep(engine, step);
-                await new Promise(r => setTimeout(r, 1500));
-            }
-            input.value = '';
-            demoBtn.disabled = false;
-        };
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(console.error);
+        if (engine.history.length === 1) {
+            historyLog.innerHTML = '';
         }
-    }
 
-    initApp();
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerText = `Step ${engine.history.length}: ${userText}`;
+        historyLog.appendChild(item);
+
+        input.value = '';
+        verifyBtn.disabled = false;
+    };
+
+    demoBtn.onclick = async () => {
+        // UPDATED: "x - 5 = x - 5" confirmed live by Frank
+        const examples = [
+            "x + 5 = 15",
+            "x - 5 = x - 5",
+            "parity = odd"
+        ];
+
+        demoBtn.disabled = true;
+
+        for (const step of examples) {
+            input.value = step;
+            await runStep(engine, step);
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        input.value = '';
+        demoBtn.disabled = false;
+    };
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+            .register('./sw.js')
+            .catch(console.error);
+    }
+}
+
+initApp();
 </script>
+
 </body>
 </html>
