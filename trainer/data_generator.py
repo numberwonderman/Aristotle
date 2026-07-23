@@ -3,33 +3,64 @@ import random
 
 def generate_data(num_samples=1000):
     """
-    Simulates a single algebra balancing step: given an equation state
-    a = b, and an operation applied to isolate a variable, was the
-    SAME value subtracted/added from BOTH sides?
+    Generates algebra balancing examples.
 
     Features:
-      op        -> 0 = subtract, 1 = add
-      lhs_delta -> amount actually changed on the left side
-      rhs_delta -> amount actually changed on the right side
+      op                -> 0 = subtract, 1 = add
+      lhs_delta         -> change applied to left side
+      rhs_delta         -> change applied to right side
+      delta_difference  -> lhs_delta - rhs_delta
+
     Label:
-      is_valid  -> 1 if lhs_delta == rhs_delta (correctly balanced), else 0
+      is_valid          -> 1 if both sides received the same change
+                           0 otherwise
     """
+
     with open('training_data.csv', 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['op', 'lhs_delta', 'rhs_delta', 'is_valid'])
+
+        writer.writerow([
+            'op',
+            'lhs_delta',
+            'rhs_delta',
+            'delta_difference',
+            'is_valid'
+        ])
 
         for _ in range(num_samples):
-            op = random.randint(0, 1)  # 0 = subtract, 1 = add
-            k = random.randint(1, 20)  # the value being applied
 
-            # Valid case: same k applied to both sides
-            writer.writerow([op, k, k, 1])
+            op = random.randint(0, 1)
+            k = random.randint(1, 20)
 
-            # Invalid case: different (mismatched) value applied to one side
+            # Valid balance step
+            difference = k - k
+
+            writer.writerow([
+                op,
+                k,
+                k,
+                difference,
+                1
+            ])
+
+
+            # Invalid balance step
             wrong_k = random.randint(1, 20)
+
             while wrong_k == k:
                 wrong_k = random.randint(1, 20)
-            writer.writerow([op, k, wrong_k, 0])
+
+            difference = k - wrong_k
+
+            writer.writerow([
+                op,
+                k,
+                wrong_k,
+                difference,
+                0
+            ])
+
 
 generate_data()
-print("Trainer Ingredients created: training_data.csv")
+
+print("Trainer ingredients created: training_data.csv")

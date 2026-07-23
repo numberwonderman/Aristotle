@@ -3,7 +3,7 @@ export class AristotleEngine {
         this.history = [];
         this.isReady = false;
         this.session = null;
-        this.lastValidatedStep = null; // holds {op, lhsValue, rhsValue} only when processInput confirms a real balancing step
+        this.lastValidatedStep = null; // holds {op, lhsValue, rhsValue} only when processInput confirms a real balancing step; deltaDifference is calculated during inference
     }
 
     async initialize() {
@@ -114,35 +114,64 @@ export class AristotleEngine {
     }
 
     async evaluateProofStep(userText) {
-        if (!this.isReady) return { latency: 0, isValid: false, probability: 0, status: "Engine not initialized" };
+    if (!this.isReady) return { latency: 0, isValid: false, probability: 0, status: "Engine not initialized" };
 
-        if (!this.lastValidatedStep) {
-            return { latency: 0, isValid: false, probability: 0, status: "Not a balancing step — model not invoked" };
-        }
-
-        const t0 = performance.now();
-
-        try {
-            const { op: operation, lhsValue, rhsValue } = this.lastValidatedStep;
-            const op = operation === 'add' ? 1 : 0;
-
-            const tensor = new ort.Tensor('float32', Float32Array.from([op, lhsValue, rhsValue]), [1, 3]);
-            const feeds = { [this.session.inputNames[0]]: tensor };
-            const output = await this.session.run(feeds);
-            const probability = output[this.session.outputNames[0]].data[0];
-
-            return {
-                latency: performance.now() - t0,
-                isValid: probability > 0.5,
-                probability: probability,
-                status: "Success"
-            };
-        } catch (e) {
-            console.error("Inference execution error:", e);
-            return { latency: 0, isValid: false, probability: 0, status: "Execution Fault" };
-        }
+    if (!this.lastValidatedStep) {
+        return { latency: 0, isValid: false, probability: 0, status: "Not a balancing step — model not invoked" };
     }
 
+    const t0 = performance.now();
+
+    try {
+        const { op: operation, lhsValue, rhsValue } = this.lastValidatedStep;
+
+        // Match validator.onnx training features:
+        // [op, lhs_delta, rhs_delta, delta_difference]
+        //
+        // op:
+        //   add = 1
+        //   subtract = 0
+        const op = operation === 'add' ? 1 : 0;
+
+        const deltaDifference = lhsValue - rhsValue;
+
+        const tensor = new ort.Tensor(
+            'float32',
+            Float32Array.from([
+                op,
+                lhsValue,
+                rhsValue,
+                deltaDifference
+            ]),
+            [1, 4]
+        );
+
+        const feeds = {
+            [this.session.inputNames[0]]: tensor
+        };
+
+        const output = await this.session.run(feeds);
+
+        const probability = output[this.session.outputNames[0]].data[0];
+
+        return {
+            latency: performance.now() - t0,
+            isValid: probability > 0.5,
+            probability: probability,
+            status: "Success"
+        };
+
+    } catch (e) {
+        console.error("Inference execution error:", e);
+
+        return {
+            latency: 0,
+            isValid: false,
+            probability: 0,
+            status: "Execution Fault"
+        };
+    }
+}
     purgeMemory() {
         if (this.session) {
             this.session.release();

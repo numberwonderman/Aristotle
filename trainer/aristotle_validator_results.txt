@@ -1,0 +1,45 @@
+Project Aristotle
+ONNX Validator Evaluation
+Date: July 23, 2026
+
+Model: validator.onnx
+Runtime: ONNX Runtime CPUExecutionProvider
+
+Evaluating ONNX model on 400 held-out samples.
+ONNX input: input
+ONNX output: output
+
+--- Confusion Matrix ---
+
+                 Predicted
+              VALID   INVALID
+
+Actual VALID    203        0
+
+Actual INVALID    0      197
+
+--- ONNX Test Results ---
+Accuracy:  100.00%
+Precision: 1.000
+Recall:    1.000
+F1 Score:  1.000
+
+--- Confidence Statistics ---
+Minimum raw output: 0.0000
+Maximum raw output: 0.9949
+Average VALID confidence:   0.9944
+Average INVALID confidence: 0.9947
+
+--- False Positive Examples ---
+None 🎉
+
+--- False Negative Examples ---
+None 🎉
+
+--- Edge Cases ---
+valid +5/+5: 0.9943 -> VALID
+valid -10/-10: 0.9527 -> VALID
+valid large 100/100: 0.9970 -> VALID
+invalid 5/9: 0.0000 -> INVALID
+hard invalid 5/7: 0.0000 -> INVALID
+near miss 100/99: 0.1106 -> INVALID
