@@ -1,129 +1,434 @@
-🏛️ Project Aristotle
+Here is the README as a single copy/paste file:
 
-An on-device, logic-based mathematical tutoring engine, built for the Arm AI Optimization Challenge (Mobile AI Track).
+```markdown
+# 🏛️ Project Aristotle
 
+An on-device, logic-based mathematical tutoring engine built for the Arm AI Optimization Challenge (Mobile AI Track).
 
-👁️ The Vision: A Tutor, Not a Cheating Machine
+---
 
-Aristotle is explicitly designed not to be an answer generator or a homework short-cut. Instead, it acts as an On-Device Socratic Math Guide.
+# 👁️ The Vision: A Tutor, Not a Cheating Machine
 
-Rooted in Historical Logic
+Aristotle is explicitly designed to be an answer-free mathematical reasoning guide, not a homework shortcut.
 
-The project is named after the historical philosopher Aristotle, the father of formal logic. In ancient Greece, Aristotle pioneered the study of syllogisms and deductive reasoning — the systematic framework showing how premises logically connect to valid conclusions. Project Aristotle modernizes this exact philosophy. It doesn't focus on arithmetic; it focuses on validity.
+Instead of solving problems for students, Aristotle helps students examine their own reasoning through an on-device Socratic tutoring approach.
 
+## Rooted in Historical Logic
 
-Step-by-Step Logic Verification: Students input their own mathematical deductions and proof steps.
-Deductive Guidance: A rule-based local engine parses the structural flow of the math and generates targeted Socratic questions — highlighting logic breakdowns without handing out answers.
-On-Device AI Validation: A small trained neural network, running fully in-browser via ONNX Runtime Web, checks whether an algebraic balancing step was applied correctly (e.g., the same value subtracted or added to both sides of an equation).
-Equity & Autonomy: The engine runs fully client-side with no server round-trip required for inference, once the page and model are loaded.
+The project is named after the historical philosopher Aristotle, who pioneered formal logic and deductive reasoning.
 
+Ancient logical systems focused on one central question:
 
-🛠️ Architecture Overview
+> Does a conclusion actually follow from the premises?
 
+Project Aristotle modernizes that idea for mathematics. It does not focus on generating answers; it focuses on verifying whether a student's reasoning step is logically valid.
 
-index.html — A distraction-free, accessible UI. Supports screen readers, keyboard navigation, and responsive mobile viewport scaling.
-aristotle.js — The AristotleEngine class. Combines:
+## Core Principles
 
-Rule-based Socratic templating (regex-driven parsing of equation states, algebra moves, and if/then implications) — this is the primary tutoring logic.
-Real ONNX inference — loads trainer/validator.onnx via onnxruntime-web's ort.InferenceSession, and runs actual forward-pass inference, but **only on input the parser has already confirmed represents a genuine two-sided balancing step** (see "Gatekeeping" below).
+- **Step-by-Step Logic Verification**  
+  Students enter their own mathematical deductions and proof steps.
 
-trainer/ — Python training pipeline:
+- **Deductive Guidance**  
+  A local rule-based engine analyzes mathematical structure and generates Socratic questions rather than revealing solutions.
 
-data_generator.py — generates synthetic training examples of correctly/incorrectly balanced algebra steps.
-trainer.py — trains a small feedforward network (3 → 8 → 1) on that data and exports it to validator.onnx.
+- **On-Device AI Validation**  
+  A small neural network runs completely locally in the browser through ONNX Runtime Web to verify whether algebraic balancing operations were applied correctly.
 
+- **Privacy and Accessibility**  
+  No server inference is required. Once loaded, the application runs entirely client-side.
 
-The parser and the ONNX validator are decoupled by design — see 🔭 Expansion Plans below.
+---
 
+# 🛠️ Architecture Overview
 
-🔒 Gatekeeping: The Model Only Speaks When It Knows
+```
 
-Earlier versions of this engine would attempt to extract *any* two numbers from user input and feed them to the model, regardless of whether the input actually represented a balancing step. This produced confident-looking but meaningless output on inputs like a bare arithmetic fact ("2+3=5") — the model would return a probability even though the question being asked didn't match anything it was trained to judge.
+index.html
+│
+├── Accessible UI
+│   ├── Screen reader support
+│   ├── Keyboard navigation
+│   └── Responsive mobile layout
+│
+├── aristotle.js
+│   └── AristotleEngine
+│       ├── Socratic rule-based reasoning layer
+│       ├── Mathematical structure parser
+│       └── ONNX Runtime Web inference
+│
+└── trainer/
+├── data_generator.py
+├── trainer.py
+├── evaluate_onnx.py
+└── validator.onnx
 
-This has been fixed at the architecture level: `evaluateProofStep()` now only invokes the ONNX model when the parser (`processInput()`) has independently confirmed the input matches a real balancing-step pattern. If that confirmation isn't present, the engine returns `"Not a balancing step — model not invoked"` rather than guessing.
+```
 
-**Independent extraction from both sides.** A second, subtler version of this problem was found and fixed during testing: an earlier implementation extracted a single value from the input and applied it to both sides of the comparison by construction, which meant the model could never actually see a genuinely mismatched case (e.g., "x+7=x+5") — it would always receive matching numbers regardless of what the user typed. The parser now extracts a delta independently from each side of the equation and passes both to the model separately, so a real mismatch can be — and has been confirmed to be — correctly flagged as invalid.
+## AristotleEngine
 
-Bare numeric equations (e.g., "5=5" or "2=5") are handled separately and correctly, via plain arithmetic equality — not the model. This is a deliberate design choice: checking whether two numbers are equal doesn't require a learned judgment, so no model call is made for it. The model is reserved for the one thing it was actually trained to assess: whether a transformation was legitimately applied to both sides.
+The engine combines two separate systems:
 
-**In short: the engine is designed to be honest about the boundary of what it knows, rather than producing a confident answer for every input.**
+### 1. Rule-Based Socratic Layer
 
+The primary tutoring logic.
 
-📊 Current Status (Honest Accounting)
+It handles:
 
-Working and verified:
+- Equation states
+- Algebra operation detection
+- If/then logical statements
+- Mathematical concept prompts
 
-ONNX model loads and runs real inference in-browser (confirmed via console logging of input tensors and output probabilities across multiple test cases, producing varied, non-constant results).
-Training and inference use a consistent, unnormalized feature scale — a normalization mismatch present in an earlier version has been identified and fixed.
-The rule-based Socratic questioning engine is fully functional independent of the model.
-The model is only invoked on input confirmed to be an addition/subtraction balancing step, with independently-extracted values from each side; all other input is handled by the rule-based layer alone, with an explicit "not applicable" status rather than a guessed answer.
-Confirmed via live testing that genuinely mismatched steps (e.g., "x+2=x+3") are correctly flagged as invalid by the model.
-Bare numeric equality (e.g., "5=5" vs. "2=5") is evaluated correctly via direct arithmetic comparison.
-PWA installable — manifest icons and service worker registration confirmed working.
-AI-off toggle — a switch in the UI lets the student disable the ONNX validator; when off, no inference call is made and the rule-based Socratic engine responds standalone.
+The goal is not to solve the student's problem, but to ask questions that encourage reflection.
 
-**Verified on real Arm hardware:**
+### 2. ONNX Validator
 
-Latency and correctness were measured live on a Samsung Galaxy phone (Arm-based) in airplane mode, confirming both offline capability and real on-device inference performance:
+The AI validation layer loads:
 
-- First inference (model warm-up/compilation): ~53ms
-- Steady-state inference (subsequent runs): ~2-4ms, averaged across 5 runs (2ms, 3ms, 3ms, 3ms, 4ms)
-- One steady-state run returned an incorrect classification at 66% confidence — a borderline case consistent with the model's documented precision of 0.910 (see Model Evaluation below). This was expected given the ~9% false-positive rate on invalid steps and is not a new bug.
+```
 
-These measurements confirm the engine runs entirely on-device on Arm mobile hardware with no network dependency, at low latency after initial model load.
+trainer/validator.onnx
 
-Known model limitation (not a bug):
+```
 
-The validator model has a measured precision of 0.910 (see Model Evaluation below), meaning roughly 9% of genuinely invalid steps may still be misclassified as valid. This was confirmed directly: "x+2=x+3" was correctly flagged invalid, while "x+5=x+7" was incorrectly passed as valid — and reconfirmed during on-device Arm testing above. This is expected behavior for a classifier at this accuracy level, not a parsing or architecture bug — the parser now correctly delivers real, independent values to the model in all cases. Improving this further would require a larger or more diverse training dataset and a retrain.
+using:
 
-Scope boundaries (explicit, not oversights):
+```
 
-**Addition and subtraction only.** Neither the parser nor the model currently recognizes multiplication or division as balancing operations. Input like "divide both sides by 5" will not be evaluated by the model and will fall back to a generic Socratic prompt. This is planned future work (see Expansion Plans), not a bug.
-The validator model was trained only on positive integers 1–20; the parser does not currently pass decimals or negative values to it, to avoid feeding the model out-of-distribution input it was never evaluated on.
+onnxruntime-web
 
+```
 
-🔭 Expansion Plans
+The model performs real neural-network inference, but only after the parser confirms that the input represents a valid algebra balancing step.
 
-The parser and validator model are modular by design: the regex-driven parsing layer and the ONNX inference step are decoupled from algebra-specific logic, so both pieces can be swapped independently to support other math domains (e.g., geometry, inequalities) without rearchitecting the engine.
+---
 
-Planned next steps:
+# 🔒 Model Gatekeeping
 
-**Multiplication/division support.** This requires more than a parser update — balancing a multiplicative step means checking a ratio rather than a delta, which is a different feature definition for the model. This will require a new labeled dataset and a full retrain, not just a parser change.
-Support for decimal and negative values, paired with a retrain on an expanded dataset (currently untested at those values).
-**Improve model precision** with a larger/more diverse training dataset, to reduce the ~9% rate at which genuinely invalid steps are misclassified as valid.
-Broader edge-case evaluation including negative-delta inputs (not yet tested — see Model Evaluation below).
-Extending the parser/validator pair to additional math domains beyond algebra balancing.
+Earlier versions attempted to send any two numbers found in user input into the neural network.
 
+This created meaningless predictions for inputs outside the model's purpose, such as:
 
-🧪 Model Evaluation
+```
 
-The validator model was evaluated on a held-out test split (80% train / 20% test, 2,000 total synthetic examples) that it never saw during training:
+2+3=5
 
-MetricScoreAccuracy95.00% (380/400 correct)Precision0.910Recall1.000F1 Score0.953
+```
 
-A recall of 1.000 means the model never incorrectly flags a genuinely valid algebra step as invalid — an important property for a tutoring tool, where falsely telling a student their correct work is wrong would undermine trust in the guide. A precision of 0.910 means roughly 9% of invalid steps may be incorrectly passed as valid — confirmed directly during live testing (see Known Limitations above) and reconfirmed during real-device latency testing on Arm hardware.
+The architecture was corrected:
 
-This is a small, narrowly-scoped classifier trained on positive integers 1–20 — it validates one specific pattern (equal-value add/subtract operations applied independently to both sides of an equation) rather than performing general mathematical reasoning. A limited set of out-of-range and boundary cases were spot-checked and returned correct classifications, but this has not yet been tested systematically (e.g., no negative-delta cases have been evaluated) — that broader sweep is planned before final submission.
+1. The parser identifies whether the input represents a genuine balancing operation.
+2. Only confirmed balancing steps are sent to the ONNX model.
+3. Unsupported inputs are handled by the Socratic rule engine.
 
-To reproduce these results: cd trainer && python evaluate_model.py
+If the input is not applicable:
 
+```
 
-🚀 Running Locally
+Not a balancing step — model not invoked
 
+```
+
+is returned instead of an unsupported prediction.
+
+## Independent Side Extraction
+
+The parser extracts transformations independently from both sides.
+
+Example:
+
+```
+
+x + 7 = x + 5
+
+```
+
+becomes:
+
+```
+
+lhs_delta = 7
+rhs_delta = 5
+
+```
+
+This allows the validator to detect real mismatches.
+
+---
+
+# 🤖 Validator Model
+
+The ONNX validator is a small feedforward neural network:
+
+```
+
+4 → 8 → 1
+
+```
+
+Input features:
+
+```
+
+[
+op,
+lhs_delta,
+rhs_delta,
+delta_difference
+]
+
+```
+
+Where:
+
+- `op`
+  - `1` = addition
+  - `0` = subtraction
+
+- `lhs_delta`
+  - Value applied to the left side
+
+- `rhs_delta`
+  - Value applied to the right side
+
+- `delta_difference`
+  - Difference between the two applied values
+
+The validator is intentionally narrow. It does not attempt general mathematical reasoning.
+
+It evaluates one specific property:
+
+> Was the same addition/subtraction transformation applied independently to both sides of an equation?
+
+---
+
+# 📊 Current Status
+
+## Working and Verified
+
+✅ ONNX model loads and runs inference in-browser  
+✅ ONNX Runtime Web integration complete  
+✅ Browser inference matches ONNX evaluation pipeline  
+✅ Rule-based Socratic tutoring engine functional  
+✅ Model gatekeeping prevents unsupported inference  
+✅ Parser extracts both sides independently  
+✅ PWA installable  
+✅ Service worker supports offline operation  
+✅ AI toggle disables inference completely  
+
+---
+
+# 📱 Arm Hardware Verification
+
+The application was tested on a Samsung Galaxy phone using Arm-based hardware.
+
+Confirmed:
+
+- Fully local inference
+- No network dependency after loading
+- Real browser ONNX inference
+
+Measured latency:
+
+```
+
+First inference:
+~53 ms
+
+Steady-state inference:
+2-4 ms
+
+```
+
+Measured steady-state runs:
+
+```
+
+2ms
+3ms
+3ms
+3ms
+4ms
+
+```
+
+---
+
+# 🧪 Model Evaluation
+
+The validator model was evaluated using ONNX Runtime on a held-out test split.
+
+Evaluation artifact:
+
+```
+
+trainer/aristotle_validator_results.txt
+
+```
+
+Configuration:
+
+```
+
+Model:
+validator.onnx
+
+Runtime:
+ONNX Runtime CPUExecutionProvider
+
+Held-out samples:
+400
+
+```
+
+## Results
+
+| Metric | Score |
+|---|---:|
+| Accuracy | 100.00% |
+| Precision | 1.000 |
+| Recall | 1.000 |
+| F1 Score | 1.000 |
+
+## Confusion Matrix
+
+```
+
+```
+             Predicted
+          VALID   INVALID
+```
+
+Actual VALID    203        0
+
+Actual INVALID    0      197
+
+```
+
+## Edge Validation
+
+```
+
+valid +5/+5:
+0.9943 -> VALID
+
+valid -10/-10:
+0.9527 -> VALID
+
+valid large 100/100:
+0.9970 -> VALID
+
+invalid 5/9:
+0.0000 -> INVALID
+
+hard invalid 5/7:
+0.0000 -> INVALID
+
+near miss 100/99:
+0.1106 -> INVALID
+
+```
+
+---
+
+# 🔭 Expansion Plans
+
+The architecture is modular and can expand beyond algebra balancing.
+
+Future work:
+
+## Multiplication and Division
+
+Requires:
+
+- New feature representation
+- New labeled dataset
+- Model retraining
+
+## Broader Numerical Support
+
+Future versions could support:
+
+- Negative values
+- Decimals
+- Larger integers
+
+with additional training data.
+
+## Improved Validation
+
+Potential improvements:
+
+- Larger datasets
+- More difficult boundary cases
+- More algebra transformations
+
+## Additional Domains
+
+Possible extensions:
+
+- Inequalities
+- Geometry reasoning
+- Proof verification
+- Symbolic mathematics
+
+---
+
+# 🚀 Running Locally
 
 Clone the repository.
-Serve the root directory with any static file server (e.g., VS Code Live Server, Python's http.server).
-Open index.html in a browser. The engine will load trainer/validator.onnx on page load.
 
+Serve the root directory using a static file server:
 
-To retrain the model:
+Examples:
 
-bashcd trainer
+```
+
+VS Code Live Server
+
+````
+
+or:
+
+```bash
+python -m http.server
+````
+
+Open:
+
+```
+index.html
+```
+
+The engine automatically loads:
+
+```
+trainer/validator.onnx
+```
+
+---
+
+# 🔧 Retraining the Model
+
+```bash
+cd trainer
+
 pip install -r requirements.txt
-python data_generator.py   # produces training_data.csv
-python trainer.py          # trains and exports validator.onnx
 
+python data_generator.py
 
-📄 License
+python trainer.py
+```
 
-MIT License — free to use, modify, and distribute.
+Evaluate:
+
+```bash
+python evaluate_onnx.py
+```
+
+---
+
+# 📄 License
+
+MIT License — free to use, modify, and distribute
+
