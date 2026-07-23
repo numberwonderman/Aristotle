@@ -1,6 +1,3 @@
-Here is the README as a single copy/paste file:
-
-```markdown
 # 🏛️ Project Aristotle
 
 An on-device, logic-based mathematical tutoring engine built for the Arm AI Optimization Challenge (Mobile AI Track).
